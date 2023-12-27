@@ -1,0 +1,257 @@
+---
+title: "Trabajo 2"
+author: "Thelma"
+date: "2023-12-27"
+output: word_document
+---
+
+# Trabajo Final
+
+*Introducción*
+
+El trabajo final del módulo 5 se basará en utilizar el corpus provisto (cuyas
+características se describen a continuación) y recorrer todo el flujo de trabajo visto en
+clase: preprocesamiento, generación de distribuciones de frecuencias de palabras y
+modelado de tópicos. Prestaremos especial atención en la corrección a la explicación y
+justificación de las decisiones tomadas, en tanto muestren manejo de los tópicos vistos
+en clase.
+Dataset
+
+El archivo que se adjunta consiste en un corpus de unas 7.000 noticias scrapeadas
+entre julio y septiembre de 2019 de los siguientes medios de circulación nacional:
+- Télam
+- La Nación
+- Clarín
+- Perfil
+- Infobae
+- MinutoUno
+- Página 12
+
+Constituye una muestra aleatoria del corpus construido por Florencia Piñeyrúa para su
+tesina de grado “Procesamiento del lenguaje natural aplicado al estudio de tópicos de
+noticias de seguridad en Argentina: julio a septiembre 2019”. 
+
+El corpus contiene, las siguientes variables:
+- id : identificador de cada documento
+- url : link a la noticia original
+- fecha : fecha de publicación
+- anio : año de publicación
+- mes : mes de publicación
+- dia : dia de publicación
+- medio : medio en el que fue publicado
+- orientacion: clasificación -provisoria- de los medios según su línea editorial
+predominante (más conservador, más progresista, neutral)
+- titulo
+- texto
+
+*A partir del corpus deberán:*
+- Cargar los datos
+- Preprocesarlos (normalizar texto, eliminar stopwords)
+- Generar una matriz token-por-fila para cada documento
+
+Abrir librerías
+
+```{r}
+library(tidyverse)
+library(tidytext)
+```
+
+### 1. Cargamos los datos
+
+```{r}
+noticias <- read_csv('C:/Users/USUARIO/Documents/DCSCyHD/Trabajo 2/trabajo2_DCSCyHD/M5_corpus_medios.csv')
+
+print (noticias)
+```
+### 2. Preprocesamos los datos
+
+#### 2.a. Construimos la tabla de tokens del texto
+```{r}
+noticias_tidy <- noticias %>%
+  unnest_tokens(output=word, input=texto, token = "words") %>% 
+print()
+```
+
+#### 2.b Eliminamos stopwords
+
+Cargamos el diccionario de stopwords
+
+```{r}
+stop_words <- read_csv("https://raw.githubusercontent.com/Alir3z4/stop-words/master/spanish.txt", col_names=FALSE) %>%
+        rename(word = X1) %>%
+        mutate(word = stringi::stri_trans_general(word, "Latin-ASCII")) %>% 
+   print()
+
+stop_words <- stop_words %>%
+ bind_rows( tibble(word=c('embed', 'leé', 'cronica.com.ar', 'minutouno.com', 'comentar', 'jpg', 'loading', 'pristupluk', '	minutouno.com', 'guardar', '	páginai12', '01', 	
+                           'l.l', 'loading', 'jpe', 'más', 'también', 'está', 'había', 'qué', 'así', 'están', 'además', 'según', 'frente', 'día', '1', 'gusta', 'twitter', 'fuente', 'whatsapp', 'compartir', 'facebook', 'mail', 'él'))) 
+
+```
+
+
+#### 2.c. Procedemos a la eliminación:
+```{r}
+corpus_noticias <- noticias_tidy %>%
+  anti_join (stop_words, by = c("word" = "word")) %>% 
+  print()
+```
+
+### 3. Generar una matriz token-por-fila para cada documento
+
+
+# Consigna 1) 
+
+a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios? 
+
+b) ¿Pueden verse diferencias? (Tener en cuenta las diferentes métricas trabajadas en el
+curso: tf, tf-idf, etc.) 
+c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
+
+```{r}
+corpus_tf_idf <- corpus_noticias  %>%
+  count(medio, word, sort = TRUE) %>%
+  bind_tf_idf (word, medio, n) %>% 
+  arrange(desc(tf)) %>% 
+  print()
+```
+
+Las palabras más utilizadas por cada medio
+
+```{r}
+unique(corpus_noticias$medio)
+```
+#### Clarín
+
+Las palabras más utilizadas de Clarín
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "clarin") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+
+```
+
+#### Perfil
+
+Las palabras más utilizadas de Perfil
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "perfil") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+
+```
+
+#### Minuto Uno
+
+Las palabras más utilizadas de Minutouno
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "minutouno") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+```
+
+
+#### Infobae
+
+Las palabras más utilizadas de Infobae
+
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "infobae") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+```
+
+
+#### La Nación
+
+Las palabras más utilizadas de La Nación
+
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "lanacion") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+```
+
+
+#### Página 12
+
+Las palabras más utilizadas de Página 12
+
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "pagina12") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+```
+
+
+#### Crónica
+
+Las palabras más utilizadas de Crónica
+
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "cronica") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+```
+
+#### Telam
+
+Las palabras más utilizadas de Telam
+
+
+```{r}
+top_words_by_medio <- corpus_tf_idf %>%
+  filter(medio == "telam") %>% 
+  group_by(medio) %>%
+  top_n(20, wt = tf) %>%
+  arrange(desc(n)) %>% 
+  print()
+```
+Probar gráficos
+
+
+
+corpus_tf_idf %>% 
+  ggplot() +
+  geom_col(aes(y = word, fill = tf_idf)) +
+  facet_wrap (vars (medio), ncol = 3, scales = "free") +
+  labs (x = "tf-idf", y = NULL) +
+  theme_minimal()
+
+
+  ggplot (corpus_tf_idf) +
+    geom_bar (aes(y = word, fill = tf_idf)) +
+  facet_wrap (vars (medio), ncol = 3, scales = "free") +
+  theme_minimal() 
+
+
+
+
+
