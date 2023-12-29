@@ -51,14 +51,14 @@ predominante (más conservador, más progresista, neutral)
 
 Abrir librerías
 
-```{r}
+```{r warning=FALSE}
 library(tidyverse)
 library(tidytext)
 ```
 
 ### 1. Cargamos los datos
 
-```{r}
+```{r warning=FALSE}
 noticias <- read_csv('C:/Users/USUARIO/Documents/DCSCyHD/Trabajo 2/trabajo2_DCSCyHD/M5_corpus_medios.csv')
 
 print (noticias)
@@ -66,7 +66,7 @@ print (noticias)
 ### 2. Preprocesamos los datos
 
 #### 2.a. Construimos la tabla de tokens del texto
-```{r}
+```{r warning=FALSE}
 noticias_tidy <- noticias %>%
   unnest_tokens(output=word, input=texto, token = "words") %>% 
 print()
@@ -76,7 +76,7 @@ print()
 
 Cargamos el diccionario de stopwords
 
-```{r}
+```{r warning=FALSE}
 stop_words <- read_csv("https://raw.githubusercontent.com/Alir3z4/stop-words/master/spanish.txt", col_names=FALSE) %>%
         rename(word = X1) %>%
         mutate(word = stringi::stri_trans_general(word, "Latin-ASCII")) %>% 
@@ -90,7 +90,7 @@ stop_words <- stop_words %>%
 
 
 #### 2.c. Procedemos a la eliminación:
-```{r}
+```{r warning=FALSE}
 corpus_noticias <- noticias_tidy %>%
   anti_join (stop_words, by = c("word" = "word")) %>% 
   print()
@@ -105,9 +105,10 @@ a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios?
 
 b) ¿Pueden verse diferencias? (Tener en cuenta las diferentes métricas trabajadas en el
 curso: tf, tf-idf, etc.) 
+
 c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
-```{r}
+```{r warning=FALSE}
 corpus_tf_idf <- corpus_noticias  %>%
   count(medio, word, sort = TRUE) %>%
   bind_tf_idf (word, medio, n) %>% 
@@ -117,14 +118,14 @@ corpus_tf_idf <- corpus_noticias  %>%
 
 Las palabras más utilizadas por cada medio
 
-```{r}
+```{r warning=FALSE}
 unique(corpus_noticias$medio)
 ```
 #### Clarín
 
 Las palabras más utilizadas de Clarín
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "clarin") %>% 
   group_by(medio) %>%
@@ -138,7 +139,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 
 Las palabras más utilizadas de Perfil
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "perfil") %>% 
   group_by(medio) %>%
@@ -152,7 +153,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 
 Las palabras más utilizadas de Minutouno
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "minutouno") %>% 
   group_by(medio) %>%
@@ -167,7 +168,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 Las palabras más utilizadas de Infobae
 
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "infobae") %>% 
   group_by(medio) %>%
@@ -182,7 +183,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 Las palabras más utilizadas de La Nación
 
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "lanacion") %>% 
   group_by(medio) %>%
@@ -197,7 +198,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 Las palabras más utilizadas de Página 12
 
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "pagina12") %>% 
   group_by(medio) %>%
@@ -212,7 +213,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 Las palabras más utilizadas de Crónica
 
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "cronica") %>% 
   group_by(medio) %>%
@@ -226,7 +227,7 @@ top_words_by_medio <- corpus_tf_idf %>%
 Las palabras más utilizadas de Telam
 
 
-```{r}
+```{r warning=FALSE}
 top_words_by_medio <- corpus_tf_idf %>%
   filter(medio == "telam") %>% 
   group_by(medio) %>%
@@ -234,24 +235,30 @@ top_words_by_medio <- corpus_tf_idf %>%
   arrange(desc(n)) %>% 
   print()
 ```
-Probar gráficos
+
+### Gráfico 
 
 
+# Consigna 2) 
 
-corpus_tf_idf %>% 
-  ggplot() +
-  geom_col(aes(y = word, fill = tf_idf)) +
-  facet_wrap (vars (medio), ncol = 3, scales = "free") +
-  labs (x = "tf-idf", y = NULL) +
-  theme_minimal()
-
-
-  ggplot (corpus_tf_idf) +
-    geom_bar (aes(y = word, fill = tf_idf)) +
-  facet_wrap (vars (medio), ncol = 3, scales = "free") +
-  theme_minimal() 
+¿Cuáles son los tópicos principales en el corpus? 
+¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta, cuáles son los supuestos del mismo. 
+Generar las
+visualizaciones más adecuadas para responder a las preguntas
 
 
+# Consigna 3) 
 
+A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
+ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del
+diario1. 
+Utilizar alguno de los modelos de clasificación vistos a lo largo de al
+Diplomatura (regresión logística, random forest, etc.). 
+Utilizar como features el
+“Spanish Billion Word Corpus and Embeddings”, analizado en clase (pueden
+descargar el embedding en formato .bin del link). 
+
+¿Qué resultados arroja el modelo? ¿Es posible mediante el texto de las noticias conocer la línea editorial del diario? 
+Generar las visualizaciones y tablas correspondientes para una correcta evaluación del modelo.
 
 
