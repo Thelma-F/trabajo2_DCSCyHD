@@ -51,11 +51,7 @@ predominante (más conservador, más progresista, neutral)
 
 Abrir librerías
 
-<<<<<<< HEAD
-```{r message=FALSE, warning=FALSE}
-=======
 ```{r warning=FALSE}
->>>>>>> 8f00baa9fa528fb16ff97b78564bf01e526a9a7d
 library(tidyverse)
 library(tidytext)
 ```
@@ -83,12 +79,12 @@ Cargamos el diccionario de stopwords
 ```{r warning=FALSE}
 stop_words <- read_csv("https://raw.githubusercontent.com/Alir3z4/stop-words/master/spanish.txt", col_names=FALSE) %>%
         rename(word = X1) %>%
-        mutate(word = stringi::stri_trans_general(word, "Latin-ASCII")) 
+        mutate(word = stringi::stri_trans_general(word, "Latin-ASCII")) %>% 
+   print()
 
 stop_words <- stop_words %>%
  bind_rows( tibble(word=c('embed', 'leé', 'cronica.com.ar', 'minutouno.com', 'comentar', 'jpg', 'loading', 'pristupluk', '	minutouno.com', 'guardar', '	páginai12', '01', 	
-                           'l.l', 'loading', 'jpe', 'más', 'también', 'está', 'había', 'qué', 'así', 'están', 'además', 'según', 'frente', 'día', '1', 'gusta', 'twitter', 'fuente', 'whatsapp', 'compartir', 'facebook', 'mail', 'él'))) %>% 
-   print()
+                           'l.l', 'loading', 'jpe', 'más', 'también', 'está', 'había', 'qué', 'así', 'están', 'además', 'según', 'frente', 'día', '1', 'gusta', 'twitter', 'fuente', 'whatsapp', 'compartir', 'facebook', 'mail', 'él'))) 
 
 ```
 
@@ -112,12 +108,6 @@ curso: tf, tf-idf, etc.)
 
 c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
-<<<<<<< HEAD
-
-Armo un corpus de noticias donde se identifiquen las tf, idf y las tf_idf
-
-=======
->>>>>>> 8f00baa9fa528fb16ff97b78564bf01e526a9a7d
 ```{r warning=FALSE}
 corpus_tf_idf <- corpus_noticias  %>%
   count(medio, word, sort = TRUE) %>%
@@ -126,35 +116,8 @@ corpus_tf_idf <- corpus_noticias  %>%
   print()
 ```
 
-Agrupo y ordeno por tf_idf
+Las palabras más utilizadas por cada medio
 
-<<<<<<< HEAD
-```{r}
-top_words_by_medio <- corpus_tf_idf %>%
-   group_by(word,medio,  tf, tf_idf) %>%
-  top_n(40, wt = tf_idf) %>%
-  arrange(desc(tf_idf)) %>% 
-  print()
-```
-
-Una opción para ver las palabras más utilizadas en cada medio es: 
-
-```{r}
-top_words_by_medio <- corpus_noticias %>%
-  group_by(medio, word) %>%
-  summarise(tf = n()) %>%
-  arrange(medio, desc(tf)) %>%
-  group_by(medio) %>%
-  top_n(10, wt = tf) %>% 
-  print()
-
-```
-
-
-Otra opción es filtrar por cada medio en particular 
-
-=======
->>>>>>> 8f00baa9fa528fb16ff97b78564bf01e526a9a7d
 ```{r warning=FALSE}
 unique(corpus_noticias$medio)
 ```
@@ -274,101 +237,6 @@ top_words_by_medio <- corpus_tf_idf %>%
 ```
 
 ### Gráfico 
-<<<<<<< HEAD
-
-Un gráfico que visualice las palabras de mayor importancia
-
-```{r}
-# Filtrar solo las 10 palabras principales por medio
-top_words_by_medio <- corpus_tf_idf %>%
-  group_by(medio) %>%
-  top_n(10, wt = tf)
-
-#Paso la primera letra de los medios en mayúscula
-
-top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
-
-
-# Crear el gráfico
-ggplot(top_words_by_medio, aes(x = tf, y = reorder(word, tf), fill = medio)) +
-  geom_col() +
-  scale_fill_discrete(name = "Medio") +
-  labs(x = "TF-IDF", y = "Palabra") +
-  facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()
-```
-
-
-Un gráfico que visualice las palabras que tengan importancia y sean informativas (tf_idf)
-
-```{r}
-# Filtrar solo las 10 palabras principales por medio
-top_words_by_medio <- corpus_tf_idf %>%
-  group_by(medio) %>%
-  top_n(10, wt = tf_idf)
-
-
-#Paso la primera letra de los medios en mayúscula
-
-top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
-
-# Crear el gráfico
-ggplot(top_words_by_medio, aes(x = tf_idf, y = reorder(word, tf_idf), fill = medio)) +
-  geom_col() +
-  scale_fill_discrete(name = "Medio") +
-  labs(x = "TF-IDF", y = "Palabra") +
-  facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()
-```
-
-
-
-# Consigna 2) 
-
-¿Cuáles son los tópicos principales en el corpus? 
-¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta, cuáles son los supuestos del mismo. 
-Generar las visualizaciones más adecuadas para responder a las preguntas
-
-Abrimos nuevas librerías
-
-```{r warning=FALSE}
-library(topicmodels)
-library(tictoc)
-```
-
-
-Topic modeling
-```{r}
-topicos_4 <- LDA(corpus_noticias, k=4, control = list(seed = 1234))
-```
-
-
-```{r}
-noticias_topics <- tidy(topicos_4, matrix = "beta") # Si esta línea les tira algún error, hagan install.packages("reshape2")
-
-#Lo pasamos a porcentajes
-noticias_topics %>%
-  mutate(beta = round(100*beta,6))
-```
-
-```{r}
-top_noticias_topics <- noticias_topics %>%
-  group_by(topic) %>%
-  slice_max(beta, n = 15) %>% 
-  ungroup() %>%
-  arrange(topic, -beta)
-
-top_noticias_topics %>%
-  mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ topic, scales='free_y') +
-  scale_y_reordered() +
-  theme_minimal()
-```
-
-
-=======
 
 
 # Consigna 2) 
@@ -379,7 +247,6 @@ Generar las
 visualizaciones más adecuadas para responder a las preguntas
 
 
->>>>>>> 8f00baa9fa528fb16ff97b78564bf01e526a9a7d
 # Consigna 3) 
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
