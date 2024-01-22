@@ -162,7 +162,12 @@ corpus_dtm <- word_counts %>%
 
 lda_4 <- LDA(corpus_dtm, k=4, control = list(seed = 1234))
 
-ap_topics <- tidy(lda_4, matrix = "beta") # Si esta línea les tira algún error, hagan install.packages("reshape2")
+
+#prueba con 7
+
+lda_7 <- LDA(corpus_dtm, k=7, control = list(seed = 1234))
+
+ap_topics <- tidy(lda_7, matrix = "beta") # Si esta línea les tira algún error, hagan install.packages("reshape2")
 
 ap_topics %>%
   mutate(beta = round(100*beta,6))
@@ -175,7 +180,7 @@ ap_top_terms <- ap_topics %>%
 ap_top_terms
 
 
-grafo2 <-  ggplot(ap_top_terms, aes(reorder(term, beta), beta, fill = beta)) +
+grafo3 <-  ggplot(ap_top_terms, aes(reorder(term, beta), beta, fill = beta)) +
   geom_col() +
   scale_fill_viridis_c() +
   facet_wrap(~ topic, scales = "free") +
@@ -184,7 +189,7 @@ grafo2 <-  ggplot(ap_top_terms, aes(reorder(term, beta), beta, fill = beta)) +
         legend.position = "none",  # Eliminar la leyenda
         text = element_text(size = 8))  
 
-ggsave("Grafo2.png", plot = grafo2, width = 10, height = 6, dpi = 300, bg = "white")
+ggsave("Grafo3.png", plot = grafo3, width = 10, height = 6, dpi = 300, bg = "white")
 
 
 
