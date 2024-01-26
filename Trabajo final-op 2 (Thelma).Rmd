@@ -414,12 +414,6 @@ corpus_tf_idf_noticia |>
 
 
 ```{r corpus_dtm}
-
-# No es seguro que sea necesario utilizar estas 3 líneas siguientes
-# Dfm
-# corpus_dfm <- corpus_tf_idf_noticia %>%
-#  cast_dfm(medio, word, n)
-
 # Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
   cast_dtm(term = word,
@@ -448,7 +442,6 @@ topicos_4 <- LDA(corpus_dtm ,
 
 ```{r}
 
-                  # Si esta línea les tira algún error, hagan install.packages("reshape2")
 noticias_topics <- tidy(topicos_4, matrix = "beta") 
 
 

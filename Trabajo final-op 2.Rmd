@@ -375,6 +375,8 @@ rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descar
 ```
 
 
+
+
 # Consigna 2) 
 
 ## a) ¿Cuáles son los tópicos principales en el corpus?
@@ -415,12 +417,6 @@ corpus_tf_idf_noticia |>
 
 
 ```{r corpus_dtm}
-
-# No es seguro que sea necesario utilizar estas 3 líneas siguientes
-# Dfm
-# corpus_dfm <- corpus_tf_idf_noticia %>%
-#  cast_dfm(medio, word, n)
-
 # Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
   cast_dtm(term = word,
@@ -436,7 +432,11 @@ corpus_dtm |>
 
 ```{r}
 
-topicos_4 <- LDA(corpus_noticias, 
+library(topicmodels)
+
+corpus_noticias <- na.omit(corpus_dtm)
+
+topicos_4 <- LDA(corpus_dtm , 
                  k = 4, 
                  control = list(seed = 1234))
 
@@ -445,7 +445,6 @@ topicos_4 <- LDA(corpus_noticias,
 
 ```{r}
 
-                  # Si esta línea les tira algún error, hagan install.packages("reshape2")
 noticias_topics <- tidy(topicos_4, matrix = "beta") 
 
 
