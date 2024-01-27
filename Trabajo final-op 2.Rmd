@@ -59,6 +59,7 @@ library(tidytext)
 # library(tictoc)
 # library(stm)
 # library(tidytext)
+# library(reshape2)
 
 ```
 
@@ -121,6 +122,17 @@ noticias_cortas <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_cortas, by = c("titulo" = "titulo"))
 
+
+
+# Arma el listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
+# con "envía tu comentario ver legales los comentarios publicados son"
+noticias_error_ln <- noticias |> 
+  filter(str_detect(texto, "^envía tu comentario ver legales los comentarios publicados son"))
+
+# Usa anti_join para eliminar esas noticias de la base "noticias"
+noticias <- noticias |> 
+  anti_join(noticias_error_ln, by = c("titulo" = "titulo"))
+
 ```
 
 ```{r noticias_tidy}
@@ -137,19 +149,6 @@ noticias_tidy |>
 ```
 
 ## Cargamos el diccionario de stopwords y agregamos stopwords específicas
-
-
-Stopwords posibles de ser agregadas: 
-c("a", "aún", "ante", "bajo", "con", "contra", "de", "desde", "durante","día", "días",
-                     "en", "entre", "hacia", "hasta", "mediante", "para", "por", 
-                     "según", "sin", "sobre", "también", "más", "año", "años", "está", "están", 
-                     "había", "después", "qué", "que", "además", "así", "embed", 'leé', 
-                     "cómo", "como", "sólo", "través", "tenía", "sí", "si", "podría", "será", "allí", "ahí", 
-                     'cronica.com.ar', 'minutouno.com', 'comentar', 'jpg', 'loading', 
-                     'pristupluk', 'minutouno.com', 'guardar', 'páginai12', '01', 
-                     'l.l', 'loading', 'jpe', 'más', 'también', 'está', 'había', 'qué', 
-                     'así', 'están', 'además', 'día', '1', 'gusta', 'twitter', 'fuente', 
-                     'whatsapp', 'compartir', 'facebook', 'mail', 'él', "cronicacomar", "minutounocom", "email", "páginai", "nacion")
 
 ```{r diccionario_stopwords}
 
@@ -370,11 +369,9 @@ ggplot(top_words_by_medio, aes(x = tf_idf,
 ```{r elimina_objetos}
 
 # Elimina objetos que ya no necesitamos
-rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas)
+rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 
 ```
-
-
 
 
 # Consigna 2) 
@@ -413,10 +410,13 @@ corpus_tf_idf_noticia |>
             with_ties = FALSE) |> 
   print()
 
+rm(noticias, corpus_noticias)
+
 ```
 
 
 ```{r corpus_dtm}
+
 # Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
   cast_dtm(term = word,
@@ -430,11 +430,7 @@ corpus_dtm |>
 ```
 
 
-```{r}
-
-library(topicmodels)
-
-corpus_noticias <- na.omit(corpus_dtm)
+```{r modelo_topicos}
 
 topicos_4 <- LDA(corpus_dtm , 
                  k = 4, 
@@ -443,14 +439,17 @@ topicos_4 <- LDA(corpus_dtm ,
 ```
 
 
-```{r}
+```{r prob_x_palabra}
 
+
+                  # Si esta línea les tira algún error, hagan install.packages("reshape2")
 noticias_topics <- tidy(topicos_4, matrix = "beta") 
 
 
 #Lo pasamos a porcentajes
-noticias_topics %>%
-  mutate(beta = round(100*beta, 6))
+noticias_topics |>
+  mutate(beta = round(100*beta,
+                      6))
 
 ```
 

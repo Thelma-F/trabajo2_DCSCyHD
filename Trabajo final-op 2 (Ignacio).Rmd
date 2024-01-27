@@ -59,6 +59,7 @@ library(tidytext)
 # library(tictoc)
 # library(stm)
 # library(tidytext)
+# library(reshape2)
 
 ```
 
@@ -121,6 +122,17 @@ noticias_cortas <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_cortas, by = c("titulo" = "titulo"))
 
+
+
+# Arma el listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
+# con "envía tu comentario ver legales los comentarios publicados son"
+noticias_error_ln <- noticias |> 
+  filter(str_detect(texto, "^envía tu comentario ver legales los comentarios publicados son"))
+
+# Usa anti_join para eliminar esas noticias de la base "noticias"
+noticias <- noticias |> 
+  anti_join(noticias_error_ln, by = c("titulo" = "titulo"))
+
 ```
 
 ```{r noticias_tidy}
@@ -137,7 +149,6 @@ noticias_tidy |>
 ```
 
 ## Cargamos el diccionario de stopwords y agregamos stopwords específicas
-
 
 ```{r diccionario_stopwords}
 
@@ -358,7 +369,7 @@ ggplot(top_words_by_medio, aes(x = tf_idf,
 ```{r elimina_objetos}
 
 # Elimina objetos que ya no necesitamos
-rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas)
+rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 
 ```
 
@@ -393,21 +404,18 @@ corpus_tf_idf_noticia <- corpus_noticias %>%
 
 corpus_tf_idf_noticia |> 
   slice_max(n = 500,
-            order_by = tf,
+            order_by = tf_idf,
             # En caso de empates ("tie"), por default la función trae ambos valores; lo seteamos
             # para que sólo traiga uno
             with_ties = FALSE) |> 
   print()
 
+rm(noticias, corpus_noticias)
+
 ```
 
 
 ```{r corpus_dtm}
-
-# No es seguro que sea necesario utilizar estas 3 líneas siguientes
-# Dfm
-# corpus_dfm <- corpus_tf_idf_noticia %>%
-#  cast_dfm(medio, word, n)
 
 # Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
@@ -422,7 +430,9 @@ corpus_dtm |>
 ```
 
 
-```{r}
+```{r modelo_topicos}
+
+# corpus_noticias <- terra::na.omit(corpus_dtm)
 
 topicos_4 <- topicmodels::LDA(corpus_dtm, 
                               k = 4, 
@@ -431,7 +441,7 @@ topicos_4 <- topicmodels::LDA(corpus_dtm,
 ```
 
 
-```{r}
+```{r prob_x_palabra}
 
                   # Si esta línea les tira algún error, hagan install.packages("reshape2")
 noticias_topics <- tidy(topicos_4, matrix = "beta") 
