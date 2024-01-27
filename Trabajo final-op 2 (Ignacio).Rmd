@@ -139,18 +139,6 @@ noticias_tidy |>
 ## Cargamos el diccionario de stopwords y agregamos stopwords específicas
 
 
-Stopwords posibles de ser agregadas: 
-c("a", "aún", "ante", "bajo", "con", "contra", "de", "desde", "durante","día", "días",
-                     "en", "entre", "hacia", "hasta", "mediante", "para", "por", 
-                     "según", "sin", "sobre", "también", "más", "año", "años", "está", "están", 
-                     "había", "después", "qué", "que", "además", "así", "embed", 'leé', 
-                     "cómo", "como", "sólo", "través", "tenía", "sí", "si", "podría", "será", "allí", "ahí", 
-                     'cronica.com.ar', 'minutouno.com', 'comentar', 'jpg', 'loading', 
-                     'pristupluk', 'minutouno.com', 'guardar', 'páginai12', '01', 
-                     'l.l', 'loading', 'jpe', 'más', 'también', 'está', 'había', 'qué', 
-                     'así', 'están', 'además', 'día', '1', 'gusta', 'twitter', 'fuente', 
-                     'whatsapp', 'compartir', 'facebook', 'mail', 'él', "cronicacomar", "minutounocom", "email", "páginai", "nacion")
-
 ```{r diccionario_stopwords}
 
 stop_words <- read_csv("https://raw.githubusercontent.com/Alir3z4/stop-words/master/spanish.txt", 
@@ -436,9 +424,9 @@ corpus_dtm |>
 
 ```{r}
 
-topicos_4 <- LDA(corpus_noticias, 
-                 k = 4, 
-                 control = list(seed = 1234))
+topicos_4 <- topicmodels::LDA(corpus_dtm, 
+                              k = 4, 
+                              control = list(seed = 1234))
 
 ```
 
