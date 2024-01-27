@@ -55,7 +55,7 @@ El corpus contiene, las siguientes variables:
 
 library(tidyverse)
 library(tidytext)
-# library(topicmodels)
+library(topicmodels)
 # library(tictoc)
 # library(stm)
 # library(tidytext)
@@ -222,8 +222,7 @@ corpus_tf_idf_medio |>
 
 ## a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios? 
 
-## b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el
-curso: tf, tf-idf, etc.) 
+## b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el curso: tf, tf-idf, etc.) 
 
 ## c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
@@ -329,7 +328,7 @@ top_words_by_medio %>%
 
 ```{r correccion_medios}
 
-#Paso la primera letra de los medios en mayúscula
+#Pasamos la primera letra de los medios en mayúscula
 top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
 
 ```
@@ -415,12 +414,6 @@ corpus_tf_idf_noticia |>
 
 
 ```{r corpus_dtm}
-
-# No es seguro que sea necesario utilizar estas 3 líneas siguientes
-# Dfm
-# corpus_dfm <- corpus_tf_idf_noticia %>%
-#  cast_dfm(medio, word, n)
-
 # Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
   cast_dtm(term = word,
@@ -436,7 +429,11 @@ corpus_dtm |>
 
 ```{r}
 
-topicos_4 <- LDA(corpus_noticias, 
+library(topicmodels)
+
+corpus_noticias <- na.omit(corpus_dtm)
+
+topicos_4 <- LDA(corpus_dtm , 
                  k = 4, 
                  control = list(seed = 1234))
 
@@ -445,7 +442,6 @@ topicos_4 <- LDA(corpus_noticias,
 
 ```{r}
 
-                  # Si esta línea les tira algún error, hagan install.packages("reshape2")
 noticias_topics <- tidy(topicos_4, matrix = "beta") 
 
 
