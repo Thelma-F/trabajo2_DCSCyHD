@@ -58,7 +58,6 @@ library(tidytext)
 # library(topicmodels)
 # library(tictoc)
 # library(stm)
-# library(tidytext)
 # library(reshape2)
 
 ```
@@ -71,7 +70,8 @@ noticias <- read_csv('M5_corpus_medios.csv')
 
 noticias |> 
   slice(1:50) |> 
-  print(noticias)
+  print(noticias) |> 
+  View()
 
 ```
 
@@ -404,13 +404,13 @@ corpus_tf_idf_noticia <- corpus_noticias %>%
 
 corpus_tf_idf_noticia |> 
   slice_max(n = 500,
-            order_by = tf,
+            order_by = tf_idf,
             # En caso de empates ("tie"), por default la función trae ambos valores; lo seteamos
             # para que sólo traiga uno
             with_ties = FALSE) |> 
   print()
 
-rm(noticias, corpus_noticias)
+rm(corpus_noticias)
 
 ```
 
@@ -432,37 +432,37 @@ corpus_dtm |>
 
 ```{r modelo_topicos}
 
-topicos_4 <- LDA(corpus_dtm , 
-                 k = 4, 
-                 control = list(seed = 1234))
+# corpus_noticias <- terra::na.omit(corpus_dtm)
+
+modelo_armado <- topicmodels::LDA(corpus_dtm, 
+                              k = 5, 
+                              control = list(seed = 1234))
 
 ```
 
 
 ```{r prob_x_palabra}
 
-
                   # Si esta línea les tira algún error, hagan install.packages("reshape2")
-noticias_topics <- tidy(topicos_4, matrix = "beta") 
+palabras_topicos <- tidy(modelo_armado, matrix = "beta") 
 
 
 #Lo pasamos a porcentajes
-noticias_topics |>
-  mutate(beta = round(100*beta,
-                      6))
+palabras_topicos %>%
+  mutate(beta = round(100*beta, 6))
 
 ```
 
 
-```{r}
+```{r top_palabras_topico}
 
-top_noticias_topics <- noticias_topics %>%
+top_palabras_topicos <- palabras_topicos %>%
   group_by(topic) %>%
   slice_max(beta, n = 15) %>% 
   ungroup() %>%
   arrange(topic, -beta)
 
-top_noticias_topics %>%
+top_palabras_topicos %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   ggplot(aes(beta, term, fill = factor(topic))) +
   geom_col(show.legend = FALSE) +
@@ -472,7 +472,51 @@ top_noticias_topics %>%
 
 ```
 
+```{r principales_noticias_x_topico}
 
+topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
+
+# Para observar qué títulos aparecen en las noticias del tópico 2
+topicos_noticias |>
+  filter(topic == 2) %>%
+  filter(gamma > 0.9) |> 
+  mutate(gamma = round(gamma, 5)) |> 
+  View()
+
+```
+
+```{r noticias_poco_clasificables}
+
+# Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
+topicos_noticias |> 
+  # Ponemos un umbral de bajas chances de encajar en cualquier tópico
+  filter(gamma < 0.3) |> 
+  # Contamos cuántos son los documentos que cumplen la condición anterior (porque si encajan 
+  # perfecto en un tópico, es obvio que en los otros no encajan)
+  count(document) |> 
+  # Si aparece 5 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
+  filter(n == 7) |> 
+  View()
+
+```
+
+
+```{r topicos_x_medio}
+
+topicos_noticias %>%
+  rename(titulo = document) %>% 
+  # tenemos que renombrar la columna para que pueda hacerse el join
+  left_join(noticias %>% select(titulo, medio) %>% unique()) %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)*100) %>%
+  ggplot() +
+    geom_col(aes(x = topic,
+                 y = mean,
+                 fill = medio), 
+             position='dodge') +
+    theme_minimal()
+
+```
 
 
 # Consigna 3) 
