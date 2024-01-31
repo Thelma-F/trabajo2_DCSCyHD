@@ -519,6 +519,53 @@ topicos_noticias %>%
 ```
 
 
+
+
+
+
+
+
+
+
+STM- pruebas
+
+
+
+
+```{r}
+word_counts <- corpus_noticias %>%  
+        group_by(id,word) %>%
+        summarise(n=n()) %>%
+        ungroup()
+
+noticias_dfm <- word_counts %>%
+                cast_dfm(id, word, n)
+
+noticias_dfm
+```
+
+```{r}
+library(readr)
+stm_7 <- read_rds('C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
+
+metadata <- corpus_noticias %>%  
+        group_by(id,medio ) %>%
+        summarise(n=n()) %>%
+        ungroup()
+
+stm_7 <- stm(documents = noticias_dfm,
+      K = 7,
+      prevalence = ~medio,
+      max.em.its = 75, 
+      data = metadata,
+      init.type = "Spectral")
+ write_rds(stm_7, 'C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
+
+
+
+```
+
+
 # Consigna 3) 
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
