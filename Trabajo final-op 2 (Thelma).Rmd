@@ -564,6 +564,9 @@ stm_7 <- stm(documents = noticias_dfm,
 
 
 ```
+```{r}
+
+```
 
 
 # Consigna 3) 
