@@ -1,0 +1,536 @@
+---
+title: "Trabajo 2"
+author: "Thelma, Beatriz e Ignacio"
+date: "2023-12-27"
+output: word_document
+---
+
+Trabajo Final
+
+*Introducción*
+
+El trabajo final del módulo 5 se basará en utilizar el corpus provisto (cuyas
+características se describen a continuación) y recorrer todo el flujo de trabajo visto en
+clase: preprocesamiento, generación de distribuciones de frecuencias de palabras y
+modelado de tópicos. Prestaremos especial atención en la corrección a la explicación y
+justificación de las decisiones tomadas, en tanto muestren manejo de los tópicos vistos
+en clase.
+Dataset
+
+El archivo que se adjunta consiste en un corpus de unas 7.000 noticias scrapeadas
+entre julio y septiembre de 2019 de los siguientes medios de circulación nacional:
+    - Télam
+    - La Nación
+    - Clarín
+    - Perfil
+    - Infobae
+    - MinutoUno
+    - Página 12
+
+Constituye una muestra aleatoria del corpus construido por Florencia Piñeyrúa para su
+tesina de grado “Procesamiento del lenguaje natural aplicado al estudio de tópicos de
+noticias de seguridad en Argentina: julio a septiembre 2019”. 
+
+El corpus contiene, las siguientes variables:
+    - id : identificador de cada documento
+    - url : link a la noticia original
+    - fecha : fecha de publicación
+    - anio : año de publicación
+    - mes : mes de publicación
+    - dia : dia de publicación
+    - medio : medio en el que fue publicado
+    - orientacion: clasificación -provisoria- de los medios según su línea editorial
+    predominante (más conservador, más progresista, neutral)
+    - titulo
+    - texto
+
+*A partir del corpus deberán:*
+    - Cargar los datos
+    - Preprocesarlos (normalizar texto, eliminar stopwords)
+    - Generar una matriz token-por-fila para cada documento
+
+# Abrimos librerías
+
+```{r librerias}
+
+library(tidyverse)
+library(tidytext)
+library(topicmodels)
+library(tictoc)
+library(stm)
+library(reshape2)
+
+```
+
+# Cargamos los datos
+
+```{r base_noticias}
+
+noticias <- read_csv('M5_corpus_medios.csv')
+
+noticias |> 
+  slice(1:50) |> 
+  print(noticias) |> 
+  View()
+
+```
+
+# Preprocesamos los datos
+
+## Construimos la tabla de tokens del texto
+
+
+```{r limpieza_noticias}
+
+# Arma el listado de noticias que no tienen texto
+noticias_vacias <- noticias |> 
+  filter(is.na(texto))
+
+# Usa anti_join para eliminar esas noticias de la base "noticias"
+noticias <- noticias |> 
+  anti_join(noticias_vacias, by = c("titulo" = "titulo"))
+
+
+
+# Arma el listado de noticias que tuvieron errores en el webscrapeo, ya que inician con "Article 
+# download()' failed with" o con 'NoneType' object has no attribute 'find_all'
+noticias_mal_descargadas <- noticias |> 
+  # El ^ antes de artículo es una expresión regular para marcar que debe buscarse al inicio del título
+  filter(str_detect(titulo, "^'NoneType'|^Article"))
+
+# Usa anti_join para eliminar esas noticias de la base "noticias"
+noticias <- noticias |> 
+  anti_join(noticias_mal_descargadas, by = c("titulo" = "titulo"))
+
+
+
+noticias <- noticias |> 
+  # Elimina puntuación y valores numéros y, posteriormente, lleva todo a minúsculas
+  mutate(texto = tolower(gsub("[[:punct:]0-9]", "", texto))) %>%
+  # Elimina múltiples espaciados erróneamente ingresados
+  mutate(texto = str_squish(texto))
+
+
+
+# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son 
+# demasiado cortas y producen ruido a la hora de evaluar las term frequency (tf)
+noticias_cortas <- noticias |> 
+  # "\\S+" es la expresión regular para detectar palabras con un espacio
+  filter(str_count(texto, "\\S+") < 40)
+
+# Usa anti_join para eliminar esas noticias de la base "noticias"
+noticias <- noticias |> 
+  anti_join(noticias_cortas, by = c("titulo" = "titulo"))
+
+
+
+# Arma el listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
+# con "envía tu comentario ver legales los comentarios publicados son"
+noticias_error_ln <- noticias |> 
+  filter(str_detect(texto, "^envía tu comentario ver legales los comentarios publicados son"))
+
+# Usa anti_join para eliminar esas noticias de la base "noticias"
+noticias <- noticias |> 
+  anti_join(noticias_error_ln, by = c("titulo" = "titulo"))
+
+```
+
+```{r noticias_tidy}
+
+noticias_tidy <- noticias %>%
+  unnest_tokens(input = texto, 
+                output = word,
+                token = "words") 
+
+noticias_tidy |> 
+  slice(1:50) |> 
+  print()
+
+```
+
+## Cargamos el diccionario de stopwords y agregamos stopwords específicas
+
+```{r diccionario_stopwords}
+
+stop_words <- read_csv("https://raw.githubusercontent.com/Alir3z4/stop-words/master/spanish.txt", 
+                       col_names=FALSE) %>%
+        rename(word = X1) %>%
+        mutate(word = stringi::stri_trans_general(word, "Latin-ASCII"))
+
+stop_words |> 
+  slice(1:50) |> 
+  print()
+
+stop_words <- stop_words %>%
+  bind_rows(tibble(word = c("\tminutouno.com", "\tpáginai12", "a", "además",
+                            "además", "ahí", "allí", "ante", "año", "años", "así",
+                            "aún", "bajo", "comentar", "comentario", "como", "cómo", "compartir",
+                            "compartir", "con", "contra", "cronica.com.ar", "cronicacomar", 
+                            "de", "desde", "después", "día", "días", "durante","él", "email", 
+                            "embed", "en", "entre", "está", "están", "facebook", "fuente", 
+                            "guardar", "gusta", "había", "hacia", "hasta", "jpe", "jpg", "l.l",
+                            "leé", "loading", "mail", "más", "mediante", "minutouno.com",
+                            "nacion", "páginai", "páginai12", "para", "podría", "por", 
+                            "pristupluk", "que", "qué", "según", "será", "si", "sí", "sin", 
+                            "sobre", "sólo", "también", "tenía", "través", "twitter", "whatsapp")))
+
+```
+
+## Procedemos a la eliminación de stopwords
+
+```{r anti_join}
+
+corpus_noticias <- noticias_tidy %>%
+  anti_join(stop_words, 
+            by = c("word" = "word"))
+
+# Elimina ambos archivos porque ya no lo necesitamos
+rm(stop_words, noticias_tidy)
+
+corpus_noticias |> 
+  slice(1:50) |> 
+  print()
+
+```
+
+## Generamos una matriz token-por-fila para cada documento
+
+```{r corpus_tf_idf_medio}
+
+# Creamos un corpus centrado en los medios
+corpus_tf_idf_medio <- corpus_noticias %>%
+  count(medio, word, 
+        sort = TRUE) %>%
+  bind_tf_idf(term = word,
+              # Al poner como "document" el medio, el idf expresa cuánto usa más un medio que otro 
+              # ciertas palabras
+              document = medio,
+              n = n)
+
+corpus_tf_idf_medio |> 
+  slice_max(n = 50,
+            order_by = tf,
+            # En caso de empates ("tie"), por default la función trae ambos valores; lo seteamos
+            # para que sólo traiga uno
+            with_ties = FALSE) |> 
+  print()
+
+```
+
+# Consigna 1) 
+
+## a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios? 
+
+## b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el
+curso: tf, tf-idf, etc.) 
+
+## c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
+
+
+## A) y B)
+
+### Armamos un corpus con las tf, idf y las tf_idf por medio
+
+#### Opción 1: todos los medios
+
+```{r todos_los_medios}
+
+top_words_by_medio <- corpus_tf_idf_medio %>%
+  group_by(medio) %>%
+  slice_max(n = 10, 
+            # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
+            order_by = tf,
+            with_ties = FALSE) %>%
+  ungroup()
+  
+top_words_by_medio |>   
+  print()
+
+```
+
+
+#### Opción 2: por medio 
+
+
+```{r Clarin}
+
+top_words_by_medio %>%
+  filter(medio == "clarin") %>% 
+  print()
+
+```
+
+
+```{r Perfil}
+
+top_words_by_medio %>%
+  filter(medio == "perfil") %>% 
+  print()
+
+```
+
+
+```{r Minuto_Uno}
+
+top_words_by_medio %>%
+  filter(medio == "minutouno") %>% 
+  print()
+
+```
+
+
+```{r Infobae}
+
+top_words_by_medio %>%
+  filter(medio == "infobae") %>% 
+  print()
+
+```
+
+
+```{r La_Nación}
+
+top_words_by_medio %>%
+  filter(medio == "lanacion") %>% 
+  print()
+
+```
+
+
+```{r Página_12}
+
+top_words_by_medio %>%
+  filter(medio == "pagina12") %>% 
+  print()
+
+```
+
+
+```{r Crónica}
+
+top_words_by_medio %>%
+  filter(medio == "cronica") %>% 
+  print()
+
+```
+
+
+```{r Telam}
+
+top_words_by_medio %>%
+  filter(medio == "telam") %>% 
+  print()
+
+```
+
+## C) Gráficos
+
+
+```{r correccion_medios}
+
+#Paso la primera letra de los medios en mayúscula
+top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
+
+```
+
+### Opción 1: Gráfico con palabras más frecuentes (tf)
+
+```{r grafico_palabras_frecuentes}
+
+# Crear el gráfico
+ggplot(top_words_by_medio, aes(x = tf, 
+                               y = reorder(word, tf), 
+                               fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+  labs(x = "TF", 
+       y = "Palabra") +
+  facet_wrap(~medio, scales = "free_y") +
+  theme_minimal()
+
+```
+
+### Opción 2: Gráfico con palabras más características del medio (tf_idf)
+
+```{r grafico_palabras_características}
+
+# Crear el gráfico
+ggplot(top_words_by_medio, aes(x = tf_idf, 
+                               y = reorder(word, tf_idf), 
+                               fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+  labs(x = "TF-IDF", y = "Palabra") +
+  facet_wrap(~medio, scales = "free_y") +
+  theme_minimal()
+
+```
+
+```{r elimina_objetos}
+
+# Elimina objetos que ya no necesitamos
+rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
+
+```
+
+
+# Consigna 2) 
+
+## a) ¿Cuáles son los tópicos principales en el corpus?
+
+## b) ¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta, cuáles son los supuestos del mismo. 
+
+## c) Generar las visualizaciones más adecuadas para responder a las preguntas
+
+
+## A)
+
+
+Si vemos los resultados ordenados por tf, se puede observar que existen 6 noticias que arrancan con "Últimas noticias de" y no contienen ninguna palabra (por eso la tf es 1: sólo ahí aparecen espacios vacíos). Deberíamos eliminarlos en el preprocesamiento.
+
+Por otro lado, los resultados ordenados por tf_idf muestra que existen varias "noticias" que son en realidad avisos de descargas fallidas y sus palabras más características son básicamente links sin puntuación. También deben ser eliminados en el preprocesamiento.
+
+```{r corpus_tf_idf_noticia}
+
+# Creamos un corpus, pero esta vez centrados en los títulos
+corpus_tf_idf_noticia <- corpus_noticias %>%
+  count(titulo, word, 
+        sort = TRUE) %>%
+  bind_tf_idf(term = word,
+              # Al poner como "document" el titulo, el idf expresa cuánto usa más un titulo que otro 
+              # ciertas palabras
+              document = titulo,
+              n = n)
+
+corpus_tf_idf_noticia |> 
+  slice_max(n = 500,
+            order_by = tf_idf,
+            # En caso de empates ("tie"), por default la función trae ambos valores; lo seteamos
+            # para que sólo traiga uno
+            with_ties = FALSE) |> 
+  print()
+
+rm(corpus_noticias)
+
+```
+
+
+```{r corpus_dtm}
+
+# Creación de la Document Term Matrix (DTM) del corpus de noticias
+corpus_dtm <- corpus_tf_idf_noticia %>%
+  cast_dtm(term = word,
+           document = titulo, 
+           value = n)
+
+# La cantidad de documentos y de palabras parece coincidir con la del corpus
+corpus_dtm |> 
+  print()
+
+```
+
+
+```{r modelo_topicos}
+
+# corpus_noticias <- terra::na.omit(corpus_dtm)
+
+modelo_armado <- topicmodels::LDA(corpus_dtm, 
+                              k = 5, 
+                              control = list(seed = 1234))
+
+```
+
+
+```{r prob_x_palabra}
+
+                  # Si esta línea les tira algún error, hagan install.packages("reshape2")
+palabras_topicos <- tidy(modelo_armado, matrix = "beta") 
+
+
+#Lo pasamos a porcentajes
+palabras_topicos %>%
+  mutate(beta = round(100*beta, 6))
+
+```
+
+
+```{r top_palabras_topico}
+
+top_palabras_topicos <- palabras_topicos %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 15) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+top_palabras_topicos %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales='free_y') +
+  scale_y_reordered() +
+  theme_minimal()
+
+```
+
+```{r principales_noticias_x_topico}
+
+topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
+
+# Para observar qué títulos aparecen en las noticias del tópico 2
+topicos_noticias |>
+  filter(topic == 2) %>%
+  filter(gamma > 0.9) |> 
+  mutate(gamma = round(gamma, 5)) |> 
+  View()
+
+```
+
+```{r noticias_poco_clasificables}
+
+# Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
+topicos_noticias |> 
+  # Ponemos un umbral de bajas chances de encajar en cualquier tópico
+  filter(gamma < 0.3) |> 
+  # Contamos cuántos son los documentos que cumplen la condición anterior (porque si encajan 
+  # perfecto en un tópico, es obvio que en los otros no encajan)
+  count(document) |> 
+  # Si aparece 5 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
+  filter(n == 7) |> 
+  View()
+
+```
+
+
+```{r topicos_x_medio}
+
+topicos_noticias %>%
+  rename(titulo = document) %>% 
+  # tenemos que renombrar la columna para que pueda hacerse el join
+  left_join(noticias %>% select(titulo, medio) %>% unique()) %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)*100) %>%
+  ggplot() +
+    geom_col(aes(x = topic,
+                 y = mean,
+                 fill = medio), 
+             position='dodge') +
+    theme_minimal()
+
+```
+
+
+# Consigna 3) 
+
+A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
+ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del
+diario1. 
+Utilizar alguno de los modelos de clasificación vistos a lo largo de al
+Diplomatura (regresión logística, random forest, etc.). 
+Utilizar como features el
+“Spanish Billion Word Corpus and Embeddings”, analizado en clase (pueden
+descargar el embedding en formato .bin del link). 
+
+¿Qué resultados arroja el modelo? ¿Es posible mediante el texto de las noticias conocer la línea editorial del diario? 
+Generar las visualizaciones y tablas correspondientes para una correcta evaluación del modelo.
+
+
