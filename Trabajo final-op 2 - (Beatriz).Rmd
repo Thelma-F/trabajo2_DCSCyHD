@@ -569,7 +569,27 @@ betas_stm %>%
   facet_wrap(~ topic, scales='free_y') +
   scale_y_reordered() +
   theme_minimal()
+
+
 ```
+```{r}
+theta_stm_7 <- tetha_stm %>%
+  rename(id=document) %>%
+  left_join(metadata)
+ 
+```
+```{r}
+theta_stm_7 %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=medio, y=mean, fill=medio)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~topic) +
+    theme_minimal()
+ 
+```
+ 
  
  
  
@@ -579,8 +599,13 @@ betas_stm %>%
 ```{r}
 labelTopics(stm_7)
 ```
-
- 
+Topico1: política/elecciones
+Topico2: politica exterior
+Topico 3: Economía
+Topico 4: dudoso? FREX: horóscopo, armstrong, astronautas, bibliotecas, binz, piscis, quimioterapia hacer chequeo
+Topico 5: justicia y seguridad
+Topico 6: espectaculo
+Topico 7: deportes
  
 # Consigna 3) 
 
