@@ -60,9 +60,6 @@ library(tictoc)
 library(stm)
 library(reshape2)
 
-
-
-### prueba 1/2
 ```
 
 # Cargamos los datos
@@ -413,7 +410,7 @@ corpus_tf_idf_noticia |>
             with_ties = FALSE) |> 
   print()
 
-rm(corpus_noticias)
+#rm(corpus_noticias) #NO BORRAR
 
 ```
 
@@ -522,6 +519,69 @@ topicos_noticias %>%
 ```
 
 
+STM- pruebas
+
+
+
+
+```{r}
+word_counts <- corpus_noticias %>%  
+        group_by(id,word) %>%
+        summarise(n=n()) %>%
+        ungroup()
+
+noticias_dfm <- word_counts %>%
+                cast_dfm(id, word, n)
+
+noticias_dfm
+```
+
+```{r}
+
+
+metadata <- corpus_noticias %>%  
+        group_by(id,medio ) %>%
+        summarise(n=n()) %>%
+        ungroup()
+
+stm_7 <- stm(documents = noticias_dfm,
+      K = 7,
+      prevalence = ~medio,
+      max.em.its = 75, 
+      data = metadata,
+      init.type = "Spectral")
+ write_rds(stm_7, 'models/stm_7_prev_cont.rds')
+
+```
+
+```{r}
+betas_stm <- tidy(stm_7, matrix='beta')
+tetha_stm <- tidy(stm_7, matrix='theta')
+
+betas_stm %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 15) %>% 
+  ungroup() %>%
+  arrange(topic, -beta) %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales='free_y') +
+  scale_y_reordered() +
+  theme_minimal()
+```
+ 
+ 
+ 
+ 
+ 
+
+```{r}
+labelTopics(stm_7)
+```
+
+ 
+ 
 # Consigna 3) 
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
