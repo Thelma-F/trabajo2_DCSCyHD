@@ -60,6 +60,9 @@ library(tictoc)
 library(stm)
 library(reshape2)
 
+
+
+### prueba 1/2
 ```
 
 # Cargamos los datos
