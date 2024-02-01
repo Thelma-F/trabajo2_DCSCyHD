@@ -59,6 +59,10 @@ library(topicmodels)
 library(tictoc)
 library(stm)
 library(reshape2)
+#AGREGAR ESTAS LIBERÍAS AL SCRIPT GENERAL
+library(textrecipes)
+library(textclean)
+
 
 ```
 
