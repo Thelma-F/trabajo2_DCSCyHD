@@ -55,10 +55,10 @@ El corpus contiene, las siguientes variables:
 
 library(tidyverse)
 library(tidytext)
-# library(topicmodels)
-# library(tictoc)
-# library(stm)
-# library(reshape2)
+library(topicmodels)
+library(tictoc)
+library(stm)
+library(reshape2)
 
 ```
 
@@ -434,9 +434,9 @@ corpus_dtm |>
 
 # corpus_noticias <- terra::na.omit(corpus_dtm)
 
-modelo_armado <- topicmodels::LDA(corpus_dtm, 
-                              k = 5, 
-                              control = list(seed = 1234))
+modelo_LDA7 <- topicmodels::LDA(corpus_dtm, 
+                              k = 7, 
+                              control = list(seed = 1234567))
 
 ```
 
@@ -444,7 +444,7 @@ modelo_armado <- topicmodels::LDA(corpus_dtm,
 ```{r prob_x_palabra}
 
                   # Si esta línea les tira algún error, hagan install.packages("reshape2")
-palabras_topicos <- tidy(modelo_armado, matrix = "beta") 
+palabras_topicos <- tidy(modelo_LDA7, matrix = "beta") 
 
 
 #Lo pasamos a porcentajes
@@ -474,7 +474,7 @@ top_palabras_topicos %>%
 
 ```{r principales_noticias_x_topico}
 
-topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
+topicos_noticias <- tidy(modelo_LDA7, matrix = "gamma")
 
 # Para observar qué títulos aparecen en las noticias del tópico 2
 topicos_noticias |>
@@ -549,9 +549,10 @@ library(readr)
 stm_7 <- read_rds('C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
 
 metadata <- corpus_noticias %>%  
-        group_by(id,medio ) %>%
+        group_by(id,medio, titulo ) %>%
         summarise(n=n()) %>%
-        ungroup()
+        ungroup() 
+
 
 stm_7 <- stm(documents = noticias_dfm,
       K = 7,
@@ -562,10 +563,103 @@ stm_7 <- stm(documents = noticias_dfm,
  write_rds(stm_7, 'C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
 
 
+```
 
+
+
+```{r}
+betas_stm <- tidy(stm_7, matrix='beta')
+doc_2_topics_stm <- tidy(stm_7, matrix='theta')
+```
+
+
+```{r}
+betas_stm %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 15) %>% 
+  ungroup() %>%
+  arrange(topic, -beta) %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales='free_y') +
+  scale_y_reordered() +
+  theme_minimal()
 ```
 ```{r}
+labelTopics(stm_7)
+```
 
+
+```{r}
+#Queremos definir cómo está compuesto el tópico 4 porque es el menos claro, para eso le paso la información del modelo y le pido  que me de mayor información de este tópico (los 10 títulos que más alto scorean)
+
+findThoughts(stm_7,
+             texts = metadata %>% mutate(titulo = str_sub(titulo, 1, 200)) %>% select(titulo) %>% pull (),
+              n=20,
+              topics=4)
+
+#Astrología, salud y ciencia (también puede ser misceláneas que se usó en clase)
+```
+
+Comparando el modelo LDA contra el modelo STM
+
+```{r}
+#LDA
+
+#Beta
+
+palabras_topicos
+
+
+#Gamma
+
+topicos_noticias
+
+doc_2_topics_lda <- topicos_noticias %>%
+  rename(id=document) %>%
+  mutate(id=as.integer(id)) %>%
+  left_join(noticias_tidy)
+
+
+doc_2_topics_lda %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=medio, y=mean, fill=medio)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~topic) +
+    theme_minimal()
+
+```
+
+
+```{r}
+
+#STM 
+
+
+doc_2_topics_stm <- doc_2_topics_stm %>%
+  rename(id=document) %>%
+  left_join(metadata)
+
+doc_2_topics_stm %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=medio, y=mean, fill=medio)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~topic) +
+    theme_minimal()
+
+doc_2_topics_stm %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=topic, y=mean, fill=topic)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~medio) +
+    theme_minimal()
 ```
 
 
