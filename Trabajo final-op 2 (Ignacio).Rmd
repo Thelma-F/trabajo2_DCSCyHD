@@ -435,7 +435,7 @@ corpus_dtm |>
 # corpus_noticias <- terra::na.omit(corpus_dtm)
 
 modelo_armado <- topicmodels::LDA(corpus_dtm, 
-                              k = 5, 
+                              k = 7, 
                               control = list(seed = 1234))
 
 ```
@@ -494,7 +494,7 @@ topicos_noticias |>
   # Contamos cuántos son los documentos que cumplen la condición anterior (porque si encajan 
   # perfecto en un tópico, es obvio que en los otros no encajan)
   count(document) |> 
-  # Si aparece 5 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
+  # Si aparece 7 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
   filter(n == 7) |> 
   View()
 
