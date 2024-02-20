@@ -51,14 +51,14 @@ El corpus contiene, las siguientes variables:
 
 # Abrimos librerías
 
-```{r librerias}
+```{r librerias, warning=FALSE}
 
 library(tidyverse)
 library(tidytext)
-# library(topicmodels)
-# library(tictoc)
-# library(stm)
-# library(reshape2)
+library(topicmodels)
+library(tictoc)
+library(stm)
+library(reshape2)
 
 ```
 
@@ -105,7 +105,7 @@ noticias <- noticias |>
 
 
 noticias <- noticias |> 
-  # Elimina puntuación y valores numéros y, posteriormente, lleva todo a minúsculas
+  # Elimina puntuación y valores numéricos y, posteriormente, lleva todo a minúsculas
   mutate(texto = tolower(gsub("[[:punct:]0-9]", "", texto))) %>%
   # Elimina múltiples espaciados erróneamente ingresados
   mutate(texto = str_squish(texto))
@@ -185,7 +185,7 @@ corpus_noticias <- noticias_tidy %>%
             by = c("word" = "word"))
 
 # Elimina ambos archivos porque ya no lo necesitamos
-rm(stop_words, noticias_tidy)
+# rm(stop_words, noticias_tidy)
 
 corpus_noticias |> 
   slice(1:50) |> 
@@ -231,7 +231,7 @@ curso: tf, tf-idf, etc.)
 
 ### Armamos un corpus con las tf, idf y las tf_idf por medio
 
-#### Opción 1: todos los medios
+#### Buscamos las TF (las palabras más importantes/frecuentes)
 
 ```{r todos_los_medios}
 
@@ -248,80 +248,36 @@ top_words_by_medio |>
 
 ```
 
+#### Buscamos las IDF (las palabras más informativas)
 
-#### Opción 2: por medio 
-
-
-```{r Clarin}
-
-top_words_by_medio %>%
-  filter(medio == "clarin") %>% 
+```{r}
+top_words_by_medio <- corpus_tf_idf_medio %>%
+  group_by(medio) %>%
+  slice_max(n = 10, 
+            # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
+            order_by = idf,
+            with_ties = FALSE) %>%
+  ungroup()
+  
+top_words_by_medio |>   
   print()
-
 ```
 
+#### Buscamos las TF_IDF (la frecuencia ponderada o ajustada por la importancia que tiene en el corpus)
 
-```{r Perfil}
-
-top_words_by_medio %>%
-  filter(medio == "perfil") %>% 
+```{r}
+top_words_by_medio <- corpus_tf_idf_medio %>%
+  group_by(medio) %>%
+  slice_max(n = 10, 
+            # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
+            order_by = tf_idf,
+            with_ties = FALSE) %>%
+  ungroup()
+  
+top_words_by_medio |>   
   print()
-
 ```
 
-
-```{r Minuto_Uno}
-
-top_words_by_medio %>%
-  filter(medio == "minutouno") %>% 
-  print()
-
-```
-
-
-```{r Infobae}
-
-top_words_by_medio %>%
-  filter(medio == "infobae") %>% 
-  print()
-
-```
-
-
-```{r La_Nación}
-
-top_words_by_medio %>%
-  filter(medio == "lanacion") %>% 
-  print()
-
-```
-
-
-```{r Página_12}
-
-top_words_by_medio %>%
-  filter(medio == "pagina12") %>% 
-  print()
-
-```
-
-
-```{r Crónica}
-
-top_words_by_medio %>%
-  filter(medio == "cronica") %>% 
-  print()
-
-```
-
-
-```{r Telam}
-
-top_words_by_medio %>%
-  filter(medio == "telam") %>% 
-  print()
-
-```
 
 ## C) Gráficos
 
@@ -333,43 +289,70 @@ top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
 
 ```
 
-### Opción 1: Gráfico con palabras más frecuentes (tf)
+### Gráfico 1: palabras más frecuentes (tf)
 
 ```{r grafico_palabras_frecuentes}
 
 # Crear el gráfico
 ggplot(top_words_by_medio, aes(x = tf, 
-                               y = reorder(word, tf), 
+                               y = word, 
                                fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
   labs(x = "TF", 
        y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()
+  theme_minimal()+
+  labs(title = "Las 10 palabras más utilizadas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 1" )
 
 ```
 
-### Opción 2: Gráfico con palabras más características del medio (tf_idf)
+### Gráfico 2: palabras más informativas (idf)
+
+```{r}
+# Crear el gráfico
+ggplot(top_words_by_medio, aes(x = idf, 
+                               y = word, 
+                               fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+  labs(x = "TF", 
+       y = "Palabra") +
+  facet_wrap(~medio, scales = "free_y") +
+  theme_minimal()+
+  labs(title = "Las 10 palabras más informativas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 2" )
+
+```
+
+
+### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
 
 ```{r grafico_palabras_características}
 
 # Crear el gráfico
 ggplot(top_words_by_medio, aes(x = tf_idf, 
-                               y = reorder(word, tf_idf), 
+                               y = word, 
                                fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF-IDF", y = "Palabra") +
+  labs(x = "TF", 
+       y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()
+  theme_minimal()+
+  labs(title = "Las 10 palabras más informativas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 3" )
 
 ```
 
 ```{r elimina_objetos}
 
 # Elimina objetos que ya no necesitamos
-rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
+#rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 
 ```
 
@@ -434,9 +417,9 @@ corpus_dtm |>
 
 # corpus_noticias <- terra::na.omit(corpus_dtm)
 
-modelo_armado <- topicmodels::LDA(corpus_dtm, 
-                              k = 5, 
-                              control = list(seed = 1234))
+modelo_LDA7 <- topicmodels::LDA(corpus_dtm, 
+                              k = 7, 
+                              control = list(seed = 1234567))
 
 ```
 
@@ -444,7 +427,7 @@ modelo_armado <- topicmodels::LDA(corpus_dtm,
 ```{r prob_x_palabra}
 
                   # Si esta línea les tira algún error, hagan install.packages("reshape2")
-palabras_topicos <- tidy(modelo_armado, matrix = "beta") 
+palabras_topicos <- tidy(modelo_LDA7, matrix = "beta") 
 
 
 #Lo pasamos a porcentajes
@@ -474,7 +457,7 @@ top_palabras_topicos %>%
 
 ```{r principales_noticias_x_topico}
 
-topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
+topicos_noticias <- tidy(modelo_LDA7, matrix = "gamma")
 
 # Para observar qué títulos aparecen en las noticias del tópico 2
 topicos_noticias |>
@@ -549,9 +532,10 @@ library(readr)
 stm_7 <- read_rds('C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
 
 metadata <- corpus_noticias %>%  
-        group_by(id,medio ) %>%
+        group_by(id,medio, titulo ) %>%
         summarise(n=n()) %>%
-        ungroup()
+        ungroup() 
+
 
 stm_7 <- stm(documents = noticias_dfm,
       K = 7,
@@ -562,7 +546,103 @@ stm_7 <- stm(documents = noticias_dfm,
  write_rds(stm_7, 'C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
 
 
+```
 
+
+
+```{r}
+betas_stm <- tidy(stm_7, matrix='beta')
+doc_2_topics_stm <- tidy(stm_7, matrix='theta')
+```
+
+
+```{r}
+betas_stm %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 15) %>% 
+  ungroup() %>%
+  arrange(topic, -beta) %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales='free_y') +
+  scale_y_reordered() +
+  theme_minimal()
+```
+```{r}
+labelTopics(stm_7)
+```
+
+
+```{r}
+#Queremos definir cómo está compuesto el tópico 4 porque es el menos claro, para eso le paso la información del modelo y le pido  que me de mayor información de este tópico (los 10 títulos que más alto scorean)
+
+findThoughts(stm_7,
+             texts = metadata %>% mutate(titulo = str_sub(titulo, 1, 200)) %>% select(titulo) %>% pull (),
+              n=20,
+              topics=4)
+
+#Astrología, salud y ciencia (también puede ser misceláneas que se usó en clase)
+```
+
+Comparando el modelo LDA contra el modelo STM
+
+```{r}
+#LDA
+
+#Beta
+
+palabras_topicos
+
+
+#Gamma
+
+topicos_noticias
+
+doc_2_topics_lda <- topicos_noticias %>%
+  rename(id=document) %>%
+  mutate(id=as.integer(id)) %>%
+  left_join(noticias_tidy)
+
+
+doc_2_topics_lda %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=medio, y=mean, fill=medio)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~topic) +
+    theme_minimal()
+
+```
+
+
+```{r}
+
+#STM 
+
+
+doc_2_topics_stm <- doc_2_topics_stm %>%
+  rename(id=document) %>%
+  left_join(metadata)
+
+doc_2_topics_stm %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=medio, y=mean, fill=medio)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~topic) +
+    theme_minimal()
+
+doc_2_topics_stm %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)) %>%
+  drop_na() %>%
+  ggplot(aes(x=topic, y=mean, fill=topic)) + 
+    geom_col(position='dodge') +
+    facet_wrap(~medio) +
+    theme_minimal()
 ```
 
 

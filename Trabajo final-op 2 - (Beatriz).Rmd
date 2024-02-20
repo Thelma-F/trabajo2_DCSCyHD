@@ -62,6 +62,10 @@ library(reshape2)
 #AGREGAR ESTAS LIBERÍAS AL SCRIPT GENERAL
 library(textrecipes)
 library(textclean)
+<<<<<<< HEAD
+
+
+=======
 library(rsample)
 library(themis)
 library(parsnip)
@@ -71,6 +75,7 @@ library(yardstick)
 library (ranger)
 library(glmnet)
 stop
+>>>>>>> 5727b8416890539435011b4bb7a149fd4c338dd4
 ```
 
 # Cargamos los datos
