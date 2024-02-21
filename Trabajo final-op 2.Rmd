@@ -252,7 +252,7 @@ top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
 ```{r grafico_palabras_frecuentes}
 
 # Crear el gráfico
-ggplot(top_words_by_medio, aes(x = tf, 
+ggplot(top_words_tf, aes(x = tf, 
                                y = fct_reorder(word, desc(tf)), 
                                fill = medio)) +
   geom_col() +
