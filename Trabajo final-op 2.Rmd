@@ -19,6 +19,7 @@ library(tidytext)
 # library(tictoc)
 library(stm)
 library (tidymodels)
+library(ggplot2)
 # library(reshape2)
 #library(textrecipes)
 #library(textclean)
@@ -266,7 +267,7 @@ ggplot(top_words_tf, aes(x = tf,
 ```{r}
 # Crear el gráfico
 ggplot(top_words_idf, aes(x = idf, 
-                               y = fct_reorder(word, desc(tf)), 
+                               y = fct_reorder(word, desc(idf)), 
                                fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
@@ -288,7 +289,7 @@ ggplot(top_words_idf, aes(x = idf,
 
 # Crear el gráfico
 ggplot(top_words_tf_idf, aes(x = tf_idf, 
-                               y = fct_reorder(word, desc(tf)), 
+                               y = word, 
                                fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
