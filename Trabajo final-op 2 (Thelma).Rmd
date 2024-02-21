@@ -227,7 +227,6 @@ curso: tf, tf-idf, etc.)
 ## c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
 
-## A) y B)
 
 ### Armamos un corpus con las tf, idf y las tf_idf por medio
 
@@ -235,7 +234,7 @@ curso: tf, tf-idf, etc.)
 
 ```{r todos_los_medios}
 
-top_words_by_medio <- corpus_tf_idf_medio %>%
+top_words_tf <- corpus_tf_idf_medio %>%
   group_by(medio) %>%
   slice_max(n = 10, 
             # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
@@ -279,7 +278,7 @@ top_words_by_medio |>
 ```
 
 
-## C) Gráficos
+## Gráficos
 
 
 ```{r correccion_medios}
@@ -513,8 +512,6 @@ topicos_noticias %>%
 STM- pruebas
 
 
-
-
 ```{r}
 word_counts <- corpus_noticias %>%  
         group_by(id,word) %>%
@@ -569,6 +566,8 @@ betas_stm %>%
   scale_y_reordered() +
   theme_minimal()
 ```
+
+
 ```{r}
 labelTopics(stm_7)
 ```
@@ -581,6 +580,7 @@ findThoughts(stm_7,
              texts = metadata %>% mutate(titulo = str_sub(titulo, 1, 200)) %>% select(titulo) %>% pull (),
               n=20,
               topics=4)
+
 
 #Astrología, salud y ciencia (también puede ser misceláneas que se usó en clase)
 ```
@@ -644,6 +644,14 @@ doc_2_topics_stm %>%
     facet_wrap(~medio) +
     theme_minimal()
 ```
+
+
+Justicia y seguridad: LDA (1), STM (5)
+Política/elecciones: LDA (5), STM (1)
+Economía:  LDA (4), STM (3)
+Deportes: LDA (7), STM (7)
+
+El resto de los topicos son más dudosos habria que chequear que comparten. Son LDa 2,3,6
 
 
 # Consigna 3) 
