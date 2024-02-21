@@ -239,20 +239,12 @@ top_words_tf_idf  |>
 
 ## Gráficos
 
-
-```{r correccion_medios}
-
-#Paso la primera letra de los medios en mayúscula
-top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
-
-```
-
 ### Gráfico 1: palabras más frecuentes (tf)
 
 ```{r grafico_palabras_frecuentes}
 
 # Crear el gráfico
-ggplot(top_words_by_medio, aes(x = tf, 
+ggplot(top_words_tf, aes(x = tf, 
                                y = fct_reorder(word, desc(tf)), 
                                fill = medio)) +
   geom_col() +
@@ -278,7 +270,7 @@ ggplot(top_words_idf, aes(x = idf,
                                fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF", 
+  labs(x = "IDF", 
        y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal()+
@@ -300,7 +292,7 @@ ggplot(top_words_tf_idf, aes(x = tf_idf,
                                fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF", 
+  labs(x = "TF_IDF", 
        y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal()+
