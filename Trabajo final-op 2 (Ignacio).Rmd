@@ -9,75 +9,39 @@ Trabajo Final
 
 *Introducción*
 
-El trabajo final del módulo 5 se basará en utilizar el corpus provisto (cuyas
-características se describen a continuación) y recorrer todo el flujo de trabajo visto en
-clase: preprocesamiento, generación de distribuciones de frecuencias de palabras y
-modelado de tópicos. Prestaremos especial atención en la corrección a la explicación y
-justificación de las decisiones tomadas, en tanto muestren manejo de los tópicos vistos
-en clase.
-Dataset
-
-El archivo que se adjunta consiste en un corpus de unas 7.000 noticias scrapeadas
-entre julio y septiembre de 2019 de los siguientes medios de circulación nacional:
-    - Télam
-    - La Nación
-    - Clarín
-    - Perfil
-    - Infobae
-    - MinutoUno
-    - Página 12
-
-Constituye una muestra aleatoria del corpus construido por Florencia Piñeyrúa para su
-tesina de grado “Procesamiento del lenguaje natural aplicado al estudio de tópicos de
-noticias de seguridad en Argentina: julio a septiembre 2019”. 
-
-El corpus contiene, las siguientes variables:
-    - id : identificador de cada documento
-    - url : link a la noticia original
-    - fecha : fecha de publicación
-    - anio : año de publicación
-    - mes : mes de publicación
-    - dia : dia de publicación
-    - medio : medio en el que fue publicado
-    - orientacion: clasificación -provisoria- de los medios según su línea editorial
-    predominante (más conservador, más progresista, neutral)
-    - titulo
-    - texto
-
-*A partir del corpus deberán:*
-    - Cargar los datos
-    - Preprocesarlos (normalizar texto, eliminar stopwords)
-    - Generar una matriz token-por-fila para cada documento
-
 # Preparación datos
 
-## Abrimos librerías
+## Se cargan las librerías a emplear
 
 ```{r librerias}
 
 library(tidyverse)
 library(tidytext)
 
-library(topicmodels)
-# library(tictoc)
+# library(topicmodels)
 # library(stm)
+# library(tidymodels)
+
+# library(tictoc)
 # library(reshape2)
 
 # Las siguientes librerías están incluidas en algunas de las anteriores
+    # library(ggplot2)
+    # library(glmnet) 
+    # library(parsnip)
+    # library(ranger)
+    # library(rsample)
     # library(textrecipes)
     # library(textclean)
-    # library(rsample)
     # library(themis)
-    # library(parsnip)
-    # library(workflows)
     # library(tune)
+    # library(workflows)
     # library(yardstick)
-    # library(ranger)
-    # library(glmnet)
+
 
 ```
 
-## Cargamos los datos
+## Se carga el dataset
 
 ```{r base_noticias}
 
@@ -90,10 +54,9 @@ noticias |>
 
 ```
 
-## Preprocesamos los datos
+# Preprocesamiento de los datos
 
-### Construimos la tabla de tokens del texto
-
+## Construimos la tabla de tokens del texto
 
 ```{r limpieza_noticias}
 
@@ -165,7 +128,7 @@ noticias_tidy |>
 
 ```
 
-### Cargamos el diccionario de stopwords y agregamos stopwords específicas
+## Cargamos el diccionario de stopwords y agregamos stopwords específicas
 
 ```{r diccionario_stopwords}
 
@@ -193,7 +156,7 @@ stop_words <- stop_words %>%
 
 ```
 
-### Procedemos a la eliminación de stopwords
+## Procedemos a la eliminación de stopwords
 
 ```{r anti_join}
 
@@ -210,7 +173,7 @@ corpus_noticias |>
 
 ```
 
-### Generamos una matriz token-por-fila para cada documento
+## Generamos una matriz token-por-fila para cada documento
 
 ```{r corpus_tf_idf_medio}
 
@@ -245,11 +208,11 @@ corpus_tf_idf_medio |>
 
 ### Armamos un corpus con las tf, idf y las tf_idf por medio
 
-#### Palabras más frecuentes de todos los medios
+#### Buscamos las TF (las palabras más importantes/frecuentes)
 
 ```{r todos_los_medios}
 
-top_words_by_medio <- corpus_tf_idf_medio %>%
+ top_words_tf <- corpus_tf_idf_medio %>%
   group_by(medio) %>%
   slice_max(n = 10, 
             # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
@@ -257,68 +220,124 @@ top_words_by_medio <- corpus_tf_idf_medio %>%
             with_ties = FALSE) %>%
   ungroup()
   
-top_words_by_medio |>   
+top_words_tf |>   
   print()
 
 ```
 
-## C) Gráficos
+#### Buscamos las IDF (las palabras más informativas)
 
-
-```{r correccion_medios}
-
-#Paso la primera letra de los medios en mayúscula
-top_words_by_medio$medio <- str_to_title(top_words_by_medio$medio)
-
+```{r}
+top_words_idf <- corpus_tf_idf_medio %>%
+  group_by(medio) %>%
+  slice_max(n = 10, 
+            # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
+            order_by = idf,
+            with_ties = FALSE) %>%
+  ungroup()
+  
+top_words_idf |>   
+  print()
 ```
 
-### Gráfico 1: palabras más frecuentes (tf)
+#### Buscamos las TF_IDF (la frecuencia ponderada o ajustada por la importancia que tiene en el corpus)
+
+```{r}
+top_words_tf_idf <- corpus_tf_idf_medio %>%
+  group_by(medio) %>%
+  slice_max(n = 10, 
+            # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
+            order_by = tf_idf,
+            with_ties = FALSE) %>%
+  ungroup()
+  
+top_words_tf_idf  |>   
+  print()
+```
+
+
+### C) Gráficos
+
+#### Gráfico 1: palabras más frecuentes (tf)
 
 A mejorar:
         - ordenar por orden descendente las palabras
-        - cambiar las referencias del eje x para que quede algo similar a "frecuencia del término cada 1000 palabras"
+
+
 
 
 ```{r grafico_palabras_frecuentes}
 
 
-ggplot(top_words_by_medio, aes(x = tf, 
-                               y = reorder(word, tf), 
-                               fill = medio)) +
+# Crear el gráfico
+ggplot(top_words_tf, aes(x = tf * 1000, 
+                         y = fct_reorder(word, desc(tf)), 
+                         fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF", 
-       y = "Palabra") +
+  labs(x = "Frecuencia (TF) cada 1.000 palabras", 
+       y = "Término") +
   facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Las 10 palabras más utilizadas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 1") +
 
 ```
 
-### Gráfico 2: palabras más características del medio (tf_idf)
+#### Gráfico 2: palabras más representativas (idf)
 
 A mejorar:
-        - que las barras representen los valores de tf_idf de los términos
         - ordenar por orden descendente las palabras
-        - cambiar las referencias del eje x para que quede algo similar a "frecuencia del término cada 1000 palabras"
+
+```{r}
+# Crear el gráfico
+ggplot(top_words_idf, aes(x = idf, 
+                          y = fct_reorder(word, desc(idf)), 
+                          fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+  labs(x = "Frecuencia inversa entre medios (IDF)", 
+       y = "Palabra") +
+  facet_wrap(~medio, scales = "free_y") +
+  theme_minimal()+
+  theme(legend.position = "none") +
+  labs(title = "Las 10 palabras más representativas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 2")
+
+```
+
+#### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+
+A mejorar:
+        - ordenar por orden descendente las palabras
+        
 
 ```{r grafico_palabras_características}
 
 # Crear el gráfico
-ggplot(top_words_by_medio, aes(x = tf_idf, 
-                               y = reorder(word, tf_idf), 
-                               fill = medio)) +
+ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
+                             y = word, 
+                             fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF-IDF", y = "Palabra") +
+  labs(x = "TF-IDF cada 1.000 palabras", 
+       y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()
+  theme_minimal()+
+  theme(legend.position = "none") +
+  labs(title = "Las 10 palabras más informativas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 3" )
 
 ```
 
 ```{r elimina_objetos}
 
 # Elimina objetos que ya no necesitamos
-rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
+rm(top_words_tf, top_words_idf, top_words_tf_idf, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 
 ```
 
@@ -330,15 +349,14 @@ rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descar
     - c) Generar las visualizaciones más adecuadas para responder a las preguntas
 
 
-## A) y C)
-
+## LDA
 
 ```{r corpus_tf_idf_noticia}
 
 # Creamos un corpus, pero esta vez centrados en los títulos
-corpus_tf_idf_noticia <- corpus_noticias %>%
+corpus_tf_idf_noticia <- corpus_noticias |> 
   count(titulo, word, 
-        sort = TRUE) %>%
+        sort = TRUE) |> 
   bind_tf_idf(term = word,
               # Al poner como "document" el titulo, el idf expresa cuánto usa más un titulo que otro 
               # ciertas palabras
@@ -354,7 +372,7 @@ corpus_tf_idf_noticia |>
   print()
 
 ```
-
+### Document Term Matrix (DTM) del corpus de noticias
 
 ```{r corpus_dtm}
 
@@ -377,7 +395,7 @@ corpus_dtm |>
 
 modelo_armado <- topicmodels::LDA(corpus_dtm, 
                               k = 7, 
-                              control = list(seed = 1234))
+                              control = list(seed = 1234567))
 write_rds(modelo_armado, 'models/LDA7.rds')
 
 ```
@@ -402,10 +420,13 @@ palabras_topicos %>%
 
 ```
 
+### Principales palabras por tópico en LDA
+
 A mejorar:
         - cambiar las referencias del eje x para que quede algo similar a "probablidad de aparición de la palabra en cierto tópico"
 
 ```{r top_palabras_topico}
+# Agrupamos por tópicos y seleccionamos las principales 15 palabras de cada uno
 
 top_palabras_topicos <- palabras_topicos %>%
   group_by(topic) %>%
@@ -413,37 +434,25 @@ top_palabras_topicos <- palabras_topicos %>%
   ungroup() %>%
   arrange(topic, -beta)
 
+# Creamos el gráfico
+
 top_palabras_topicos %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
+  ggplot(aes(x = beta * 1000, 
+             y = term, 
+             fill = factor(topic))) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales='free_y') +
   scale_y_reordered() +
-  theme_minimal()
+  labs(x = "Probabilidad de aparición en una noticia cada 1.000 palabras", 
+       y = "Término") +
+  theme_minimal()+
+  labs(title = "Principales palabras por Tópico ",
+       subtitle = "Según modelo LDA", 
+       caption = "Gráfico n° 4",
+       plot.title = element_text(size = 10))
 
 ```
-
-## Tópicos principales
-
-- Tópico 1: Justicia y seguridad
-
-- Tópico 2: Vida y Relaciones Personales
-vida, casa, gente, historia, mujer, familia, mundo, amor, vídeo, película, programa, música, hijo, padre
-
-- Tópico 3: Sociedad y Bienestar
-mujeres, personas, salud, vida, argentina, mundo, social, educación, país, sociedad, sistema, sociales, política, forma, nacional
-
-- Tópico 4: Economía y Política Internacional
-millones, gobierno, país, argentina, dólares, acuerdo, presidente, Trump, unidos, mercado, ciento, pesos, dólar, banco, economía
-
-- Tópico 5: Política Nacional y Elecciones
-Macri, Fernández, gobierno, presidente, frente, Alberto, candidato, Cristina, campaña, Argentina, paso, país, elecciones, nacional, Mauricio
-
-- Tópico 6: Problemas Urbanos y Ambientales
-ciudad, personas, Aires, Argentina, país, agua, mundo, productos, nacional, san, zona, centro, sistema, metros, forma
-
-- Tópico 7: Deportes y Entretenimiento
-equipo, partido, final, Argentina, Boca, copa, fútbol, club, River, mundial, argentino, selección, minutos, jugadores, mundo
 
 
 ```{r noticias_x_topico}
@@ -453,10 +462,11 @@ topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
 
 ```
 
+Para observar qué títulos aparecen en las noticias del tópico 5
 
 ```{r top_noticias_x_topico, eval=FALSE, include=FALSE}
 
-# Este código no se corre, es sólo para revisar qué noticias pertenecen a qué tópico
+# Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 5)
 
 
 
@@ -471,14 +481,15 @@ topicos_noticias |>
 ```
 
 
+Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
+
 ```{r noticias_poco_clasificables, eval=FALSE, include=FALSE}
 
-# Este código no se corre, es sólo para revisar qué noticias pertenecen a qué tópico
+# Este código no se corre, es sólo para revisar qué noticias no estarían perteneciendo claramente a ningún tópico
 
 
 
 
-# Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
 topicos_noticias |> 
   # Ponemos un umbral de bajas chances de encajar en cualquier tópico
   filter(gamma < 0.3) |> 
@@ -491,7 +502,8 @@ topicos_noticias |>
 
 ```
 
-## B) y C)
+
+### Gráfico LDA: tópicos en cada medio
 
 A mejorar:
         - Intercambiar lugares entre tópico y medio, así quedan un bloque de columnas de un medio ("La Nación", por ejemplo) donde aparecen sus tópicos más frecuentes
@@ -502,18 +514,48 @@ A mejorar:
 
 topicos_noticias %>%
   rename(titulo = document) %>% 
-  # tenemos que renombrar la columna para que pueda hacerse el join
   left_join(noticias %>% select(titulo, medio) %>% unique()) %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)*100) %>%
   ggplot() +
-    geom_col(aes(x = topic,
-                 y = mean,
-                 fill = medio), 
-             position='dodge') +
-    theme_minimal()
+  geom_col(aes(x = factor(topic),
+               y = mean,
+               fill = medio), 
+           position='dodge') +
+  theme_minimal() +
+         # Colocar la leyenda abajo del gráfico
+  theme(legend.position = "bottom", 
+        # Achicar el texto de la leyenda
+        legend.text = element_text(size = rel(0.8)),
+        # Achicar el título de la leyenda
+        legend.title = element_text(size = rel(0.8)),
+        # Rotar y ajustar texto del eje x
+        axis.text.x = element_text(angle = 0, hjust = 1)) +  
+  labs(title = "Medios por tópico", 
+       subtitle = "Según modelo LDA", 
+       caption = "Gráfico n° 5")  
 
 ```
+
+
+### Revisar nombre de los tópicos LDA 7
+
+Tópico 1: Justicia y seguridad
+
+Tópico 2: Vida y Relaciones Personales 
+(vida, casa, gente, historia, mujer, familia, mundo, amor, vídeo, película, programa, música, hijo, padre)
+
+Tópico 3: Sociedad y Bienestar 
+(mujeres, personas, salud, vida, argentina, mundo, social, educación, país, sociedad, sistema, sociales, política, forma, nacional)
+
+Tópico 4: Economía y Política Internacional (millones, gobierno, país, argentina, dólares, acuerdo, presidente, Trump, unidos, mercado, ciento, pesos, dólar, banco, economía)
+
+Tópico 5: Política Nacional y Elecciones (
+Macri, Fernández, gobierno, presidente, frente, Alberto, candidato, Cristina, campaña, Argentina, paso, país, elecciones, nacional, Mauricio)
+
+Tópico 6: Problemas Urbanos y Ambientales (ciudad, personas, Aires, Argentina, país, agua, mundo, productos, nacional, san, zona, centro, sistema, metros, forma)
+
+Tópico 7: Deportes y Entretenimiento (equipo, partido, final, Argentina, Boca, copa, fútbol, club, River, mundial, argentino, selección, minutos, jugadores, mundo)
 
 
 ## Alternativa: STM
@@ -537,6 +579,7 @@ noticias_dfm
 ```
 
 ```{r eval=FALSE, include=FALSE}
+# stm_7 <- read_rds('models/stm_7_prev_cont.rds'')
 
 metadata <- corpus_noticias %>%  
         group_by(id,medio ) %>%
@@ -568,7 +611,11 @@ betas_stm %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales='free_y') +
   scale_y_reordered() +
-  theme_minimal()
+  theme_minimal()+
+  labs(title = "Principales palabras por Tópico",
+       subtitle = "Según modelo STM", 
+       caption = "Gráfico n° 6",
+  plot.title = element_text(size = 10))
 
 ```
 
@@ -589,7 +636,13 @@ theta_stm_7 %>%
   ggplot(aes(x=medio, y=mean, fill=medio)) + 
     geom_col(position='dodge') +
     facet_wrap(~topic) +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "bottom",  # Colocar la leyenda debajo del gráfico
+          axis.text.x = element_blank()) +  # Quitar la leyenda del eje x
+    labs(title = "Principales palabras por Tópico según medio",
+          subtitle = "Según modelo STM", 
+       caption = "Gráfico n° 7",  
+         plot.title = element_text(size = 14))  # Ajustar el tamaño del título del gráfico
  
 ```
 
@@ -599,14 +652,14 @@ labelTopics(stm_7)
 
 ```
 
-### Tópicos resultantes:
-      - Topico 1: política/elecciones
-      - Topico 2: politica exterior
-      - Topico 3: Economía
-      - Topico 4: dudoso? FREX: horóscopo, armstrong, astronautas, bibliotecas, binz, piscis, quimioterapia hacer chequeo
-      - Topico 5: justicia y seguridad
-      - Topico 6: espectaculo
-      - Topico 7: deportes
+### Tópicos resultantes
+    - Tópico 1: Política/elecciones
+    - Tópico 2: Política exterior
+    - Tópico 3: Economía
+    - Tópico 4: Astrología, salud y ciencia 
+    - Tópico 5: Justicia y seguridad
+    - Tópico 6: Espectáculo
+    - Tópico 7: Deportes
 
 
 ```{r elimina_objetos}
@@ -638,7 +691,7 @@ Generar las visualizaciones y tablas correspondientes para una correcta evaluaci
 
 ### Selección de noticias del tópico política/ elecciones
 
-```{r noticias_topico_5, eval=FALSE, include=FALSE}
+```{r noticias_topico_5}
 
 # Creamos el objeto con las noticias que más probablemente (70% de probabilidad) pertenecen al tópico 5, que es el que trata sobre política/ elecciones
 
@@ -700,43 +753,6 @@ corpus_noticias_t5 <- corpus_noticias_t5 |>
 ```
 
 
-    ESTOS BLOQUES NO SE CORREN CUANDO SE CORRE TODO EL CÓDIGO
----------
-
-
-
-
-```{r eval=FALSE, include=FALSE}
-
-corpus_noticias_t5 
-
-corpus_noticias_t5 %>%
-  count(topic) %>%
-  mutate(porcentaje_absoluto = n,
-         porcentaje = n / sum(n) * 100) |> 
-  View()
-
-```
-
-```{r eval=FALSE, include=FALSE}
-
-corpus_topic_5 <- corpus_topic %>%
-  filter(topic == 5) %>%
-  select(-gamma, -topic)
-
-```
-
-```{r eval=FALSE, include=FALSE}
-
-# Obtener una muestra del 10%
-corpus_topic_5_muestra <- corpus_topic_5 %>%
-  sample_frac(0.5, replace = FALSE)
-
-# Ahora corpus_topic_5_muestra contiene el 50% aleatorio de los datos originales
-
-```
-
----------
 ## Embedding
 
 Se utiliza un embedding entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Pueden encontrar los detalles [aquí](https://crscardellino.ar/SBWCE/).
@@ -780,7 +796,7 @@ corpus_c_embedding <- corpus_noticias_t5 |>
 
 ```{r elimina_objetos}
 
-# Como ya no se utilizan e implican mucho peso, se elimina el embedding
+# Como ya no se utilizan e implican mucho peso, se eliminan
 rm(corpus_noticias_t5, noticias, noticias_topico_5, topicos_noticias, embedding, load_embeddings)
 
 ```
