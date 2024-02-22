@@ -446,14 +446,20 @@ ciudad, personas, Aires, Argentina, país, agua, mundo, productos, nacional, san
 equipo, partido, final, Argentina, Boca, copa, fútbol, club, River, mundial, argentino, selección, minutos, jugadores, mundo
 
 
-```{r principales_noticias_x_topico, eval=FALSE, include=FALSE}
+```{r noticias_x_topico}
+
+# El gamma es el valor de probabilidad de cada noticia de pertenecer a cierto tópico
+topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
+
+```
+
+
+```{r top_noticias_x_topico, eval=FALSE, include=FALSE}
 
 # Este código no se corre, es sólo para revisar qué noticias pertenecen a qué tópico
 
 
 
-
-topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
 
 # Para observar qué títulos aparecen en las noticias del tópico 5
 topicos_noticias |>
@@ -513,6 +519,8 @@ topicos_noticias %>%
 ## Alternativa: STM
 
 Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos muy parecidos a los que se logra con LDA
+
+
 
 ```{r eval=FALSE, include=FALSE}
 
@@ -771,10 +779,11 @@ corpus_c_embedding <- corpus_noticias_t5 |>
 ```
 
 ```{r elimina_objetos}
+
 # Como ya no se utilizan e implican mucho peso, se elimina el embedding
 rm(corpus_noticias_t5, noticias, noticias_topico_5, topicos_noticias, embedding, load_embeddings)
-```
 
+```
 
 Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio de cada dimensión de la noticia en su conjunto
 
@@ -789,7 +798,7 @@ tictoc::toc()
 
 ```
 
-```{r conteo_medios_y_orientacion}
+```{r conteo_medios_y_orientacion, eval=FALSE, include=FALSE}
 
 # Contamos cuántas noticias hay referidas a ciertos medios y a ciertas orientaciones para garantizar balancearlos
 
@@ -807,27 +816,48 @@ noticias_c_embedding |>
 
 Es claro que no existe un balanceo de orientaciones: "conservador" y "neutro" poseen casi un 40% de noticias, mientras "progresista" sólo posee un 20%. Lo mismo puede decirse sobre los diarios dentro de cada orientación: dentro de "conservador", Clarín tiene el cuadruple de casos que Infobae; lo mismo Perfil respecto a Crónica en "neutro"; y Página12 posee el doble de noticias que Minuto1
 
-Por ese motivo, es necesario un balanceo de medios y orientaciones antes de continuar con el análisis. Considerando que sólo existen 2 diarios de orientación "progresista" (mientras el resto de las orientaciones poseen 3 diarios distintos) y uno de ellos (Minuto1) sólo posee 56 noticias, utilizaremos ese valor como base. De esta forma, dentro de la orientación "progresista" habrá 56 noticias de ese diario y otras 56 de Página12, dando un total de 112 noticias.
+Por ese motivo, es necesario un balanceo de medios y orientaciones antes de continuar con el análisis. Considerando que sólo existen 2 diarios de orientación "progresista" (mientras el resto de las orientaciones poseen 3 diarios distintos) y uno de ellos (Minuto1) sólo posee 56 noticias, utilizaremos ese valor como base. 
 
-Tomando en cuenta ese 
+Para que cada orientación quede con un número divisible tanto por 3 como por 2 (ya que dos orientaciones tienen 3 diarios distintos cada una y la otra tiene 2), vamos a quedarnos con 54 noticias de Minuto1 y 54 noticias de Página12. De esta forma, la orientación "progresista" quedaría con 108 noticias.
+
+Para tener 108 noticias de diarios de orientación "conservadora" y otras 108 de diarios de orientación "neutra", cada diario de esas orientaciones debería tener 36 noticias. En el siguiente código se hace una selección al azar de esa cantidad de noticias por diario y por orientación. 
 
 ```{r balanceo_medios_y_orientacion}
 
+noticias_progresistas <- noticias_c_embedding |>
+  filter(orientacion == "progresista") |> 
+  group_by(medio) |> 
+  sample_n(size = 54) |> 
+  ungroup()
 
+noticias_conservadoras_y_neutras <- noticias_c_embedding |>
+  filter(orientacion == "conservador" | orientacion == "neutro") |> 
+  group_by(medio) |> 
+  sample_n(size = 36) |> 
+  ungroup()
+
+noticias_balanceadas <- noticias_progresistas |> 
+  bind_rows(noticias_conservadoras_y_neutras)
+
+rm(noticias_progresistas, noticias_conservadoras_y_neutras)
+
+# Acá vemos que las noticias están balanceadas ahora por medio y por orientación (considerando que las "progresistas" provienen de 2 diarios y no de 3)
+noticias_balanceadas |> 
+  count(medio, orientacion) |> 
+  mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
+  View()
 
 ```
 
 
-
-Luego, dividimos los datos en conjuntos de entrenamiento y prueba. Podemos utilizar la función initial_split() de rsample para crear esta división binaria de los datos. El argumento orientación garantiza que la distribución del producto sea similar en el conjunto de entrenamiento y el conjunto de prueba. Dado que la división utiliza un muestreo aleatorio, establecemos una semilla para poder reproducir nuestros resultados.
-
-```{r spliteo}
+```{r spliteo_balanceado}
 
 # Establecemos la semilla para aleatorizar el proceso
 set.seed(1234)
 
 # Armamos las categorías para hacer el spliteo
-noticias_split <- rsample::initial_split(corpus_c_embedding,
+noticias_split <- rsample::initial_split(noticias_balanceadas,
+                                         # el argumento strata garatiza que el set de entrenamiento y el de prueba tengan la misma proporción de noticias de cada orientación que la base original
                                          strata = medio)
 
 # Set de entrenamiento
@@ -838,11 +868,9 @@ test_embed <- rsample::testing(noticias_split)
 
 # Tabla para ver el balanceo
 train_embed |> 
-  count(medio, orientacion) |> 
+  count(medio) |> 
   mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
   View()
-
-#Conservador 44,5%; progresista 20%; neutro 35,5%
 
 ```
 
@@ -850,9 +878,9 @@ train_embed |>
 
 Ahora, hay que generar el modelo de random forest. Esto lo hacemos con la función `rand_forest()`. Los hiperparámetros con los que vamos a jugar acá son:
 
--   `trees`: define el número de árboles que se van a probar,
--   `mtry`: la cantidad de variables que se van a probar en cada iteración
--   `min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
+  -`trees`: define el número de árboles que se van a probar,
+  -`mtry`: la cantidad de variables que se van a probar en cada iteración
+  -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
 ```{r}
 
@@ -870,8 +898,6 @@ A continuación, necesitamos preprocesar estos datos para prepararlos para el mo
 El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una especificación de los pasos de preprocesamiento que queremos realizar. Estas transformaciones se estiman (o "entrenan") en el conjunto de entrenamiento para que puedan aplicarse de la misma manera en el conjunto de prueba o en nuevos datos durante la predicción, sin fuga de datos. Inicializamos nuestro conjunto de transformaciones de preprocesamiento con la función `recipe()`, utilizando una expresión de fórmula para especificar las variables, nuestra variable de resultado junto con nuestro predictor, junto con el conjunto de datos.
 
 ```{r}
-
-
 # especifico la receta
 noticias_rec_embed <-
         recipe(orientacion ~ .,
@@ -906,6 +932,7 @@ tune_params <- tune_grid(wf_embed,
 write_rds(tune_params, 'models/tune_params.rds')
 
 ```
+
 ```{r modelo_topicos}
 
 tune_params <- read_rds('models/tune_params.rds')
@@ -925,8 +952,10 @@ metrics_df <- collect_metrics(tune_params) ####VER!
 
 
 ```{r}
+
 autoplot(tune_params)+
   theme_minimal()
+
 ```
 
 
@@ -948,7 +977,9 @@ tictoc::toc()
 Veamos los dos mejores modelos en términos de ROC:
 
 ```{r}
+
 show_best(tune_params, "roc_auc")
+
 ```
 
 Veamos el mejor modelo dentro de 1 error estándar:
@@ -963,17 +994,21 @@ final_rf <- finalize_model(
 
 final_rf
 ```
+
 ```{r}
+
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
   add_recipe(noticias_rec_embed) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
+
 ```
 
 ¿Cómo es la performance?
 
 ```{r}
+
 test_val <- tree_fit %>%
   predict(test_embed) %>%
   bind_cols(., test_embed)
@@ -989,15 +1024,11 @@ test_val <- predict(tree_fit, test_embed, type = "prob") %>%
   #bind_rows(recall(orientacion, .pred_class)) %>%
   #bind_rows(f_meas(orientacion, .pred_class))
 
-
-
-
 ```
 
 ¿Cómo son los resultados en comparación con los otros 2 modelos?
 
 ```{r}
-
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
