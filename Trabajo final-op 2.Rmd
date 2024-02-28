@@ -1,6 +1,6 @@
 ---
-title: "Trabajo Final- Opción 2"
-author: "Ignacio Bastías, Thelma Fratarelli y Beatriz Soria"
+title: "Trabajo 2"
+author: "Thelma Fratarelli, Beatriz Soria e Ignacio Luis Bastías"
 date: "2023-12-27"
 output: word_document
 ---
@@ -9,28 +9,39 @@ Trabajo Final
 
 *Introducción*
 
-# Se cargan las librerías a emplear
+# Preparación datos
+
+## Se cargan las librerías a emplear
 
 ```{r librerias}
 
 library(tidyverse)
 library(tidytext)
+
 # library(topicmodels)
+# library(stm)
+# library(tidymodels)
+
 # library(tictoc)
-library(stm)
-library (tidymodels)
-library(ggplot2)
 # library(reshape2)
-#library(textrecipes)
-#library(textclean)
-#library(rsample)
-#library(themis)
-#library(parsnip)
+
+# Las siguientes librerías están incluidas en algunas de las anteriores
+    # library(ggplot2)
+    # library(glmnet) 
+    # library(parsnip)
+    # library(ranger)
+    # library(rsample)
+    # library(textrecipes)
+    # library(textclean)
+    # library(themis)
+    # library(tune)
+    # library(workflows)
+    # library(yardstick)
 
 
 ```
 
-# Se carga el dataset
+## Se carga el dataset
 
 ```{r base_noticias}
 
@@ -40,15 +51,16 @@ noticias |>
   slice(1:50) |> 
   print(noticias) |> 
   View()
+
 ```
 
 # Preprocesamiento de los datos
 
 ## Construimos la tabla de tokens del texto
 
-```{r limpieza_noticias, warning=FALSE}
+```{r limpieza_noticias}
 
-# Armado del listado de noticias que no contienen texto
+# Arma el listado de noticias que no tienen texto
 noticias_vacias <- noticias |> 
   filter(is.na(texto))
 
@@ -56,7 +68,9 @@ noticias_vacias <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_vacias, by = c("titulo" = "titulo"))
 
-# Armado del listado de noticias con errores en el webscrapeo, ya que inician con "Article 
+
+
+# Arma el listado de noticias que tuvieron errores en el webscrapeo, ya que inician con "Article 
 # download()' failed with" o con 'NoneType' object has no attribute 'find_all'
 noticias_mal_descargadas <- noticias |> 
   # El ^ antes de artículo es una expresión regular para marcar que debe buscarse al inicio del título
@@ -66,14 +80,18 @@ noticias_mal_descargadas <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_mal_descargadas, by = c("titulo" = "titulo"))
 
+
+
 noticias <- noticias |> 
-  # Elimina puntuación y valores numéricos y, posteriormente, lleva todo a minúsculas
+  # Elimina puntuación y valores numéros y, posteriormente, lleva todo a minúsculas
   mutate(texto = tolower(gsub("[[:punct:]0-9]", "", texto))) %>%
   # Elimina múltiples espaciados erróneamente ingresados
   mutate(texto = str_squish(texto))
 
-# Armado del listado de noticias que, después de limpieza de caracteres, se considera que son  cortas y producen ruido a la hora de evaluar las term frequency (tf)
 
+
+# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son 
+# demasiado cortas y producen ruido a la hora de evaluar las term frequency (tf)
 noticias_cortas <- noticias |> 
   # "\\S+" es la expresión regular para detectar palabras con un espacio
   filter(str_count(texto, "\\S+") < 40)
@@ -83,9 +101,9 @@ noticias <- noticias |>
   anti_join(noticias_cortas, by = c("titulo" = "titulo"))
 
 
-# Armado del listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
-# con "envía tu comentario ver legales los comentarios publicados son"
 
+# Arma el listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
+# con "envía tu comentario ver legales los comentarios publicados son"
 noticias_error_ln <- noticias |> 
   filter(str_detect(texto, "^envía tu comentario ver legales los comentarios publicados son"))
 
@@ -105,6 +123,8 @@ noticias_tidy <- noticias %>%
 noticias_tidy |> 
   slice(1:50) |> 
   print()
+
+
 
 ```
 
@@ -179,14 +199,12 @@ corpus_tf_idf_medio |>
 
 # Consigna 1) 
 
-a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios? 
-
-b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el
-curso: tf, tf-idf, etc.) 
-
-c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
+    - a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios?
+    - b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el curso: tf, tf-idf, etc.)
+    - c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
 
+## A) y B)
 
 ### Armamos un corpus con las tf, idf y las tf_idf por medio
 
@@ -194,7 +212,7 @@ c) Generar las visualizaciones que considere más pertinentes para responder la 
 
 ```{r todos_los_medios}
 
-top_words_tf <- corpus_tf_idf_medio %>%
+ top_words_tf <- corpus_tf_idf_medio %>%
   group_by(medio) %>%
   slice_max(n = 10, 
             # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
@@ -238,62 +256,75 @@ top_words_tf_idf  |>
 ```
 
 
-## Gráficos
+### C) Gráficos
 
-### Gráfico 1: palabras más frecuentes (tf)
+#### Gráfico 1: palabras más frecuentes (tf)
+
+A mejorar:
+        - ordenar por orden descendente las palabras
+
+
+
 
 ```{r grafico_palabras_frecuentes}
 
+
 # Crear el gráfico
-ggplot(top_words_tf, aes(x = tf, 
-                               y = fct_reorder(word, desc(tf)), 
-                               fill = medio)) +
+ggplot(top_words_tf, aes(x = tf * 1000, 
+                         y = fct_reorder(word, desc(tf)), 
+                         fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "Palabra", 
-       y = "TF") +
+  labs(x = "Frecuencia (TF) cada 1.000 palabras", 
+       y = "Término") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal() +
   theme(legend.position = "none") +
   labs(title = "Las 10 palabras más utilizadas en cada medio",
        subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 1")
-
+       caption = "Gráfico n° 1") +
 
 ```
 
-### Gráfico 2: palabras más informativas (idf)
+#### Gráfico 2: palabras más representativas (idf)
 
-```{r}
+A mejorar:
+        - ordenar por orden descendente las palabras
+
+```{r grafico_palabras_representativas}
 # Crear el gráfico
 ggplot(top_words_idf, aes(x = idf, 
-                               y = fct_reorder(word, desc(idf)), 
-                               fill = medio)) +
+                          y = fct_reorder(word, desc(idf)), 
+                          fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "IDF", 
+  labs(x = "Frecuencia inversa entre medios (IDF)", 
        y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal()+
   theme(legend.position = "none") +
-  labs(title = "Las 10 palabras más informativas en cada medio",
+  labs(title = "Las 10 palabras más representativas en cada medio",
        subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 2" )
+       caption = "Gráfico n° 2")
+
 
 ```
 
+#### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
 
-### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+A mejorar:
+        - ordenar por orden descendente las palabras
+        
 
-```{r grafico_palabras_características}
+```{r grafico_palabras_informativas}
 
 # Crear el gráfico
-ggplot(top_words_tf_idf, aes(x = tf_idf, 
-                               y = word, 
-                               fill = medio)) +
+ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
+                             y = word, 
+                             fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF_IDF", 
+  labs(x = "TF-IDF cada 1.000 palabras", 
        y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal()+
@@ -307,33 +338,26 @@ ggplot(top_words_tf_idf, aes(x = tf_idf,
 ```{r elimina_objetos}
 
 # Elimina objetos que ya no necesitamos
-#rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
+rm(top_words_tf, top_words_idf, top_words_tf_idf, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 
 ```
 
 
 # Consigna 2) 
 
-a) ¿Cuáles son los tópicos principales en el corpus?
-
-b) ¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta, cuáles son los supuestos del mismo. 
-
-c) Generar las visualizaciones más adecuadas para responder a las preguntas
+    - a) ¿Cuáles son los tópicos principales en el corpus?
+    - b) ¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta y cuáles son los supuestos del mismo
+    - c) Generar las visualizaciones más adecuadas para responder a las preguntas
 
 
-# LDA
-
-
-Si vemos los resultados ordenados por tf, se puede observar que existen 6 noticias que arrancan con "Últimas noticias de" y no contienen ninguna palabra (por eso la tf es 1: sólo ahí aparecen espacios vacíos). Deberíamos eliminarlos en el preprocesamiento.
-
-Por otro lado, los resultados ordenados por tf_idf muestra que existen varias "noticias" que son en realidad avisos de descargas fallidas y sus palabras más características son básicamente links sin puntuación. También deben ser eliminados en el preprocesamiento.
+## LDA
 
 ```{r corpus_tf_idf_noticia}
 
 # Creamos un corpus, pero esta vez centrados en los títulos
-corpus_tf_idf_noticia <- corpus_noticias %>%
+corpus_tf_idf_noticia <- corpus_noticias |> 
   count(titulo, word, 
-        sort = TRUE) %>%
+        sort = TRUE) |> 
   bind_tf_idf(term = word,
               # Al poner como "document" el titulo, el idf expresa cuánto usa más un titulo que otro 
               # ciertas palabras
@@ -348,14 +372,12 @@ corpus_tf_idf_noticia |>
             with_ties = FALSE) |> 
   print()
 
-#rm(corpus_noticias)
-
 ```
-
-Creación de la Document Term Matrix (DTM) del corpus de noticias
+### Document Term Matrix (DTM) del corpus de noticias
 
 ```{r corpus_dtm}
 
+# Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
   cast_dtm(term = word,
            document = titulo, 
@@ -367,15 +389,25 @@ corpus_dtm |>
 
 ```
 
-Ejecutamos el LDA con 7 tópicos
 
-```{r Prueba con 7 tópicos}
+```{r modelo_topicos, eval=FALSE, include=FALSE}
+
+# El encabezado de este código está seteado por default para no correr; así, cuando se pone "Run all code", este paso se saltea
+
 modelo_armado <- topicmodels::LDA(corpus_dtm, 
                               k = 7, 
                               control = list(seed = 1234567))
 write_rds(modelo_armado, 'models/LDA7.rds')
+
 ```
 
+```{r modelo_topicos}
+
+# Como se saltea el paso anterior, se carga el modelo que ya está guardado en la carpeta de "models"
+
+modelo_armado <- read_rds('models/LDA7.rds')
+
+```
 
 ```{r prob_x_palabra}
 
@@ -389,10 +421,13 @@ palabras_topicos %>%
 
 ```
 
-Visualizamos las principales palabras por tópico en LDA
+### Gráfico 4: principales palabras por tópico en LDA
+
+A mejorar:
+        - cambiar las referencias del eje x para que quede algo similar a "probablidad de aparición de la palabra en cierto tópico"
 
 ```{r top_palabras_topico}
-#Agrupamos por tópicos y seleccionamos las principales 15 palabras de cada uno
+# Agrupamos por tópicos y seleccionamos las principales 15 palabras de cada uno
 
 top_palabras_topicos <- palabras_topicos %>%
   group_by(topic) %>%
@@ -400,39 +435,61 @@ top_palabras_topicos <- palabras_topicos %>%
   ungroup() %>%
   arrange(topic, -beta)
 
-#Creamos el gáfico 
+# Creamos el gráfico
 
 top_palabras_topicos %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
+  ggplot(aes(x = beta * 1000, 
+             y = term, 
+             fill = factor(topic))) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales='free_y') +
   scale_y_reordered() +
+  labs(x = "Probabilidad de aparición en una noticia cada 1.000 palabras", 
+       y = "Término") +
   theme_minimal()+
   labs(title = "Principales palabras por Tópico ",
        subtitle = "Según modelo LDA", 
        caption = "Gráfico n° 4",
-  plot.title = element_text(size = 10))
+       plot.title = element_text(size = 10))
 
 ```
 
-Para observar qué títulos aparecen en las noticias del tópico 2 (el tópico menos claro)
 
-```{r principales_noticias_x_topico}
+```{r noticias_x_topico}
 
+# El gamma es el valor de probabilidad de cada noticia de pertenecer a cierto tópico
 topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
 
+```
+
+Para observar qué títulos aparecen en las noticias del tópico 5
+
+```{r top_noticias_x_topico, eval=FALSE, include=FALSE}
+
+# Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 5)
+
+
+
+
+# Para observar qué títulos aparecen en las noticias del tópico 5
 topicos_noticias |>
-  filter(topic == 2) %>%
+  filter(topic == 5) %>%
   filter(gamma > 0.9) |> 
   mutate(gamma = round(gamma, 5)) |> 
   View()
 
 ```
 
+
 Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
 
-```{r noticias_poco_clasificables}
+```{r noticias_poco_clasificables, eval=FALSE, include=FALSE}
+
+# Este código no se corre, es sólo para revisar qué noticias no estarían perteneciendo claramente a ningún tópico
+
+
+
 
 topicos_noticias |> 
   # Ponemos un umbral de bajas chances de encajar en cualquier tópico
@@ -440,13 +497,19 @@ topicos_noticias |>
   # Contamos cuántos son los documentos que cumplen la condición anterior (porque si encajan 
   # perfecto en un tópico, es obvio que en los otros no encajan)
   count(document) |> 
-  # Si aparece 5 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
+  # Si aparece 7 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
   filter(n == 7) |> 
   View()
 
 ```
 
-Armamos un gráfico LDA para observar qué tópicos tienen mayor representación en cada medio
+
+### Gráfico 5: tópicos en cada medio
+
+A mejorar:
+        - Intercambiar lugares entre tópico y medio, así quedan un bloque de columnas de un medio ("La Nación", por ejemplo) donde aparecen sus tópicos más frecuentes
+        - Ordenar los tópicos dentro de cada medio de mayor a menor (tal vez, tal vez queda bien el orden de los tópicos tal cual viene)
+        - Poner nombres/ etiquetas a los tópicos así quedan explicitados y no son números nomás
 
 ```{r topicos_x_medio}
 
@@ -456,23 +519,27 @@ topicos_noticias %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)*100) %>%
   ggplot() +
-    geom_col(aes(x = factor(topic),
-                 y = mean,
-                 fill = medio), 
-             position='dodge') +
-    theme_minimal() +
-    theme(legend.position = "bottom",  # Colocar la leyenda abajo del gráfico
-          legend.text=element_text(size=rel(0.8)),  # Achicar el texto de la leyenda
-          legend.title=element_text(size=rel(0.8)),  # Achicar el título de la leyenda
-          axis.text.x = element_text(angle = 0, hjust = 1)) +  # Rotar y ajustar texto del eje x
-    labs(title = "Tópicos por medio", 
-          subtitle = "Según modelo LDA", 
+  geom_col(aes(x = factor(topic),
+               y = mean,
+               fill = medio), 
+           position='dodge') +
+  theme_minimal() +
+         # Colocar la leyenda abajo del gráfico
+  theme(legend.position = "bottom", 
+        # Achicar el texto de la leyenda
+        legend.text = element_text(size = rel(0.8)),
+        # Achicar el título de la leyenda
+        legend.title = element_text(size = rel(0.8)),
+        # Rotar y ajustar texto del eje x
+        axis.text.x = element_text(angle = 0, hjust = 1)) +  
+  labs(title = "Medios por tópico", 
+       subtitle = "Según modelo LDA", 
        caption = "Gráfico n° 5")  
 
 ```
 
 
-# Revisar nombre de los tópicos LDA 7
+### Revisar nombre de los tópicos LDA 7
 
 Tópico 1: Justicia y seguridad
 
@@ -492,10 +559,14 @@ Tópico 6: Problemas Urbanos y Ambientales (ciudad, personas, Aires, Argentina, 
 Tópico 7: Deportes y Entretenimiento (equipo, partido, final, Argentina, Boca, copa, fútbol, club, River, mundial, argentino, selección, minutos, jugadores, mundo)
 
 
+## Alternativa: STM
 
-# STM
+Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos muy parecidos a los que se logra con LDA
 
-```{r}
+
+
+```{r eval=FALSE, include=FALSE}
+
 word_counts <- corpus_noticias %>%  
         group_by(id,word) %>%
         summarise(n=n()) %>%
@@ -505,11 +576,10 @@ noticias_dfm <- word_counts %>%
                 cast_dfm(id, word, n)
 
 noticias_dfm
+
 ```
 
-
-```{r message=FALSE, warning=FALSE, include=FALSE}
-library(readr)
+```{r eval=FALSE, include=FALSE}
 # stm_7 <- read_rds('models/stm_7_prev_cont.rds'')
 
 metadata <- corpus_noticias %>%  
@@ -523,13 +593,12 @@ stm_7 <- stm(documents = noticias_dfm,
       max.em.its = 75, 
       data = metadata,
       init.type = "Spectral")
-write_rds(stm_7, 'models/stm_7_prev_cont.rds')
+ write_rds(stm_7, 'models/stm_7_prev_cont.rds')
 
 ```
 
+```{r eval=FALSE, include=FALSE}
 
-
-```{r}
 betas_stm <- tidy(stm_7, matrix='beta')
 tetha_stm <- tidy(stm_7, matrix='theta')
 
@@ -547,119 +616,152 @@ betas_stm %>%
   labs(title = "Principales palabras por Tópico",
        subtitle = "Según modelo STM", 
        caption = "Gráfico n° 6",
-  plot.title = element_text(size = 10))
-
+       plot.title = element_text(size = 10))
 
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
+
 theta_stm_7 <- tetha_stm %>%
   rename(id=document) %>%
   left_join(metadata)
  
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
+
 theta_stm_7 %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)) %>%
   drop_na() %>%
-  ggplot(aes(x=medio, y=mean, fill=medio)) + 
-    geom_col(position='dodge') +
-    facet_wrap(~topic) +
-    theme_minimal() +
-    theme(legend.position = "bottom",  # Colocar la leyenda debajo del gráfico
-          axis.text.x = element_blank()) +  # Quitar la leyenda del eje x
-    labs(title = "Principales palabras por Tópico según medio",
-          subtitle = "Según modelo STM", 
+  ggplot(aes(x = medio,
+             y = mean,
+             fill=medio)) + 
+  geom_col(position='dodge') +
+  facet_wrap(~topic) +
+  theme_minimal() +
+  theme(legend.position = "bottom",  # Colocar la leyenda debajo del gráfico
+        axis.text.x = element_blank()) +  # Quitar la leyenda del eje x
+  labs(title = "Principales palabras por Tópico según medio",
+       subtitle = "Según modelo STM", 
        caption = "Gráfico n° 7",  
-         plot.title = element_text(size = 14))  # Ajustar el tamaño del título del gráfico
-
+       plot.title = element_text(size = 14))  # Ajustar el tamaño del título del gráfico
  
 ```
 
-```{r}
+```{r eval=FALSE, include=FALSE}
+
 labelTopics(stm_7)
+
 ```
 
+### Tópicos resultantes
+    - Tópico 1: Política/elecciones
+    - Tópico 2: Política exterior
+    - Tópico 3: Economía
+    - Tópico 4: Astrología, salud y ciencia 
+    - Tópico 5: Justicia y seguridad
+    - Tópico 6: Espectáculo
+    - Tópico 7: Deportes
 
-Tópico 1: Política/elecciones
-Tópico 2: Política exterior
-Tópico 3: Economía
-Tópico 4: Astrología, salud y ciencia 
-Tópico 5: Justicia y seguridad
-Tópico 6: Espectáculo
-Tópico 7: Deportes
 
-CHEQUEAR COMPARACION del modelo LDA contra el modelo STM
+```{r elimina_objetos}
+
+# Se eliminan aquellos objetos que no son más útiles a partir de este punto
+
+rm(corpus_dtm, corpus_noticias, corpus_tf_idf_noticia, modelo_armado, palabras_topicos, top_palabras_topicos)
+
+```
+
 
 # Consigna 3) 
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
-ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del
-diario1. 
+ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del diario1.
+
 Utilizar alguno de los modelos de clasificación vistos a lo largo de al
 Diplomatura (regresión logística, random forest, etc.). 
-Utilizar como features el
-“Spanish Billion Word Corpus and Embeddings”, analizado en clase (pueden
-descargar el embedding en formato .bin del link). 
 
-¿Qué resultados arroja el modelo? ¿Es posible mediante el texto de las noticias conocer la línea editorial del diario? 
+Utilizar como features el “Spanish Billion Word Corpus and Embeddings”, analizado en clase (pueden descargar el embedding en formato .bin del link). 
+
+¿Qué resultados arroja el modelo? ¿Es posible mediante el texto de las noticias conocer la línea editorial del diario?
+
 Generar las visualizaciones y tablas correspondientes para una correcta evaluación del modelo.
 
-```{r}
-#TRABAJE CON EL TOPICO 5 DE LDA QUE ES "ELECCIONES/POLÍTICA NACIONAL"
-#Importante: La variable objetivo orientación debo convertirla en factor para correr una regresión logistica (es decir, que sea una variable con categorías). Por otra parte, si van a utilizar funciones que calculan métricas derivadas de la matriz de confusión es mucho muy importante que las categorías estén ordenadas con el valor positivo como primer nivel y el negativo como el segundo nivel (ver que esto no lo he hecho, 
-#base_para_modelar <- base_juguete %>%   #mutate(realiza_trabajo_domestico = factor(realiza_trabajo_domestico,levels = c("Si","No")
 
-corpus_topic <- topicos_noticias %>% ##IGNACIO!!! acA ES DONDE HICE EL JOIN CON EL CORPUS TOTAL
-  rename(titulo = document) %>%
-  left_join(
-    noticias %>%
-    #distinct(titulo, .keep_all = TRUE) %>%
-    select(titulo, medio, orientacion, texto)
-  ) %>%
-  mutate(orientacion = gsub("\\+ ", "", orientacion))%>% 
-  mutate(orientacion = as.factor(orientacion)) %>%
-  group_by(medio, topic) %>%
-  ungroup() 
+## Armado del corpus
+
+### Selección de noticias del tópico política/ elecciones
+
+```{r noticias_topico_5}
+
+# Creamos el objeto con las noticias que más probablemente (70% de probabilidad) pertenecen al tópico 5, que es el que trata sobre política/ elecciones
+
+noticias_topico_5 <- topicos_noticias |> 
+  mutate(gamma = round(gamma, 5)) |> 
+  filter(topic == 5,
+         gamma > 0.7)
 
 ```
 
-   
-```{r topicos_x_medio}
-#acA FILTRE EL TOPICO 5 de LDA QUE ES ELECCIONES, PERO SIN HACER SELECCIONAR LAS NOTICIAS QUE TIENEN GAMA MAS ALTO DE ESE TOPICO
-corpus_Topic5 <- corpus_topic %>%
-  filter(topic == 5) %>%
-    select(-gamma, -topic)
+"
+Importante: La variable objetivo orientación debo convertirla en factor para correr una regresión logistica (es decir, que sea una variable con categorías). Por otra parte, si van a utilizar funciones que calculan métricas derivadas de la matriz de confusión es mucho muy importante que las categorías estén ordenadas con el valor positivo como primer nivel y el negativo como el segundo nivel
+
+base_para_modelar <- base_juguete %>% 
+  mutate(realiza_trabajo_domestico = factor(realiza_trabajo_domestico,
+                                            levels = c("Si","No"))))
+"
+
+¿Cómo aplicaría a nuestro caso el hecho que haya 3 categorías y ninguna sea per se "positiva" o "negativa"?
+
+```{r corpus_noticias_t5}
+
+# Se arma el objeto "corpus_noticias_t5", que con el conjunto de noticias que más probablemente pertenezcan al tópico 5 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
+
+corpus_noticias_t5 <- noticias_topico_5 |>
+  rename(titulo = document) |> 
+  left_join(noticias) |>
+  select(titulo, gamma, id, medio, orientacion, texto) |> 
+  mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
+  mutate(orientacion = factor(orientacion,
+                              levels = c("conservador", "neutro", "progresista")))
 
 ```
 
+### Tokenización
 
-```{r prueba con muestra del 50}
+```{r preprocesamiento}
 
-# Obtener una muestra del 50%ACa habia trabajado con una muestra del 50% porque sino se vuelve muy pesado. Yo creo que si hacemos las operaciones anteriores no es necesario.
-corpus_Topic5_muestra <- corpus_Topic5 %>%
-  sample_frac(0.5, replace = FALSE)
+## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
-# Ahora corpus_Topic5_muestra contiene el 50% aleatorio de los datos originales.
-
-```
-
-#### Aca empieza la clase 6
-```{r}
-## Word embeddings como features. Realizamos un preprocesamiento siempre. No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii.
-noticias_embed <- corpus_Topic5_muestra %>%
-        mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) %>%
+corpus_noticias_t5 <- corpus_noticias_t5 |>
+        # Revisar qué es esa expresión regular
+        mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
+        # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
+
 ```
 
-Carga del embedding
 
-Vamos a usar un embedding entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Pueden encontrar los detalles [aquí](https://crscardellino.ar/SBWCE/).
+```{r tokenización}
 
-Escribamos una función que cargue el embedding y ejecutémosla:
-```{r}
+corpus_noticias_t5 <- corpus_noticias_t5 |> 
+  mutate(title_id = row_number()) |> 
+  # No pasamos a minúscula ni eliminamos la puntuación para que se unan correctamente con el embedding
+  unnest_tokens(word, texto, 
+                to_lower = FALSE,
+                strip_punct = FALSE)
+
+```
+
+
+## Embedding
+
+Se utiliza un embedding entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Pueden encontrar los detalles [aquí](https://crscardellino.ar/SBWCE/).
+
+```{r carga embedding}
+
+# Arma la función para cargar un embedding
 load_embeddings <- function(path=NULL, type=c("w2v", "ft")){
         if (type=="w2v"){
                 embedding <- word2vec::read.wordvectors(path, 
@@ -679,95 +781,154 @@ load_embeddings <- function(path=NULL, type=c("w2v", "ft")){
 }
 
 
-embedding <- load_embeddings(path = "WordEmbeddings/Word2Vec/sbw_vectors.bin",
+# Llamo al embedding
+embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vectors.bin",
                              type = "w2v")
 
 ```
-### Tokenización y construcción de features mediante el embedding
-Si bien existe un método `step_word_embeddings()` análogo al `step_tfidf()` que realizaría la vectorización, vamos a hacer "a mano" para tratar de entender qué pasa (y porque además, el método tiene algunos comportamientos raros).
 
-La secuencia de operaciones que vamos a realizar es la siguiente:
+```{r union_embedding}
 
-1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
-```{r}
-
-
-noticias_tidy <- noticias_embed %>%
-  mutate(title_id = row_number()) %>%
-  unnest_tokens(word, texto, 
-                to_lower=FALSE, #estaba en TRUE
-                strip_punct=TRUE) 
-
-```
-2. Left-join de la tabla tokenizada de cada noticia con el embedding. De esta forma, cada palabra va a estar representada por un vector de 300 dimensiones, que se corresponde con un vector del embedding pre-entrenado.
-```{r}
-
-#
-noticias_tidy <- noticias_tidy %>%
-        left_join(embedding) %>%
+# Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
+corpus_c_embedding <- corpus_noticias_t5 |>
+        left_join(embedding) |>
         drop_na()
+
 ```
-3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia.
-```{r}
+
+```{r elimina_objetos}
+
+# Como ya no se utilizan e implican mucho peso, se eliminan
+rm(corpus_noticias_t5, noticias, noticias_topico_5, topicos_noticias, embedding, load_embeddings)
+
+```
+
+Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio de cada dimensión de la noticia en su conjunto
+
+```{r promedio_x_dimension}
+
 tictoc::tic()
-noticias_embed <- noticias_tidy %>%
-        group_by(title_id,orientacion) %>%
-        summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
-        ungroup()
+noticias_c_embedding <- corpus_c_embedding %>%
+  group_by(title_id, medio, orientacion) %>%
+  summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
+  ungroup()
 tictoc::toc()
-```
-Luego, dividimos los datos en conjuntos de entrenamiento y prueba. Podemos utilizar la función initial_split() de rsample para crear esta división binaria de los datos. El argumento orientación garantiza que la distribución del producto sea similar en el conjunto de entrenamiento y el conjunto de prueba. Dado que la división utiliza un muestreo aleatorio, establecemos una semilla para poder reproducir nuestros resultados.
 
-```{r}
-## Split
+```
+
+```{r conteo_medios_y_orientacion, eval=FALSE, include=FALSE}
+
+# Contamos cuántas noticias hay referidas a ciertos medios y a ciertas orientaciones para garantizar balancearlos
+
+noticias_c_embedding |> 
+  count(orientacion) |> 
+  mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
+  View()
+
+noticias_c_embedding |> 
+  count(medio, orientacion) |> 
+  mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
+  View()
+
+```
+
+Es claro que no existe un balanceo de orientaciones: "conservador" y "neutro" poseen casi un 40% de noticias, mientras "progresista" sólo posee un 20%. Lo mismo puede decirse sobre los diarios dentro de cada orientación: dentro de "conservador", Clarín tiene el cuadruple de casos que Infobae; lo mismo Perfil respecto a Crónica en "neutro"; y Página12 posee el doble de noticias que Minuto1
+
+Por ese motivo, es necesario un balanceo de medios y orientaciones antes de continuar con el análisis. Considerando que sólo existen 2 diarios de orientación "progresista" (mientras el resto de las orientaciones poseen 3 diarios distintos) y uno de ellos (Minuto1) sólo posee 56 noticias, utilizaremos ese valor como base. 
+
+Para que cada orientación quede con un número divisible tanto por 3 como por 2 (ya que dos orientaciones tienen 3 diarios distintos cada una y la otra tiene 2), vamos a quedarnos con 54 noticias de Minuto1 y 54 noticias de Página12. De esta forma, la orientación "progresista" quedaría con 108 noticias.
+
+Para tener 108 noticias de diarios de orientación "conservadora" y otras 108 de diarios de orientación "neutra", cada diario de esas orientaciones debería tener 36 noticias. En el siguiente código se hace una selección al azar de esa cantidad de noticias por diario y por orientación. 
+
+```{r balanceo_medios_y_orientacion}
+
+noticias_progresistas <- noticias_c_embedding |>
+  filter(orientacion == "progresista") |> 
+  group_by(medio) |> 
+  sample_n(size = 54) |> 
+  ungroup()
+
+noticias_conservadoras_y_neutras <- noticias_c_embedding |>
+  filter(orientacion == "conservador" | orientacion == "neutro") |> 
+  group_by(medio) |> 
+  sample_n(size = 36) |> 
+  ungroup()
+
+noticias_balanceadas <- noticias_progresistas |> 
+  bind_rows(noticias_conservadoras_y_neutras)
+
+rm(noticias_progresistas, noticias_conservadoras_y_neutras)
+
+# Acá vemos que las noticias están balanceadas ahora por medio y por orientación (considerando que las "progresistas" provienen de 2 diarios y no de 3)
+noticias_balanceadas |> 
+  count(medio, orientacion) |> 
+  mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
+  View()
+
+```
+
+
+```{r spliteo_balanceado}
+
+# Establecemos la semilla para aleatorizar el proceso
 set.seed(1234)
-noticias_split <- initial_split(noticias_embed, strata = orientacion)
 
-train_embed <- training(noticias_split)
-test_embed <- testing(noticias_split)
+# Armamos las categorías para hacer el spliteo
+noticias_split <- rsample::initial_split(noticias_balanceadas,
+                                         # el argumento strata garatiza que el set de entrenamiento y el de prueba tengan la misma proporción de noticias de cada orientación que la base original
+                                         strata = medio)
 
-#ver el balanceo en train
-table (train_embed$orientacion) #para ver el balanceo)
+# Set de entrenamiento
+train_embed <- rsample::training(noticias_split)
 
-#Conservador 44,5%, progresista 20%, neutro 35.5$
+# Set de prueba o testeo
+test_embed <- rsample::testing(noticias_split)
+
+# Tabla para ver el balanceo
+train_embed |> 
+  count(medio) |> 
+  mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
+  View()
 
 ```
+
 ## Hiperparámetros
 
 Ahora, hay que generar el modelo de random forest. Esto lo hacemos con la función `rand_forest()`. Los hiperparámetros con los que vamos a jugar acá son:
 
--   `trees`: define el número de árboles que se van a probar,
--   `mtry`: la cantidad de variables que se van a probar en cada iteración
--   `min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
+  -`trees`: define el número de árboles que se van a probar,
+  -`mtry`: la cantidad de variables que se van a probar en cada iteración
+  -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
 ```{r}
-rf_spec <- rand_forest(
-  trees = 1000,
-  mtry = tune(),
-  min_n = tune()
-  ) %>%
+
+rf_spec <- rand_forest(trees = 1000,
+                       mtry = tune(),
+                       min_n = tune()) %>%
   set_mode("classification") %>%
   set_engine("ranger")
 
 ```
+
+
 A continuación, necesitamos preprocesar estos datos para prepararlos para el modelado; tenemos datos de texto y necesitamos construir características numéricas para el aprendizaje automático a partir de ese texto.
 
 El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una especificación de los pasos de preprocesamiento que queremos realizar. Estas transformaciones se estiman (o "entrenan") en el conjunto de entrenamiento para que puedan aplicarse de la misma manera en el conjunto de prueba o en nuevos datos durante la predicción, sin fuga de datos. Inicializamos nuestro conjunto de transformaciones de preprocesamiento con la función `recipe()`, utilizando una expresión de fórmula para especificar las variables, nuestra variable de resultado junto con nuestro predictor, junto con el conjunto de datos.
 
 ```{r}
-
-
 # especifico la receta
 noticias_rec_embed <-
-        recipe(orientacion ~ ., data = train_embed) %>%
+        recipe(orientacion ~ .,
+               data = train_embed) %>%
         update_role("title_id", new_role = "ID")%>%
-        step_downsample(orientacion, under_ratio = 1) #esto sería para balancear las clases
+        step_downsample(orientacion,
+                        under_ratio = 1) #esto sería para balancear las clases
 
 
 # especifico el flujo
 wf_embed <- workflow() %>% 
-        add_recipe(noticias_rec_embed) %>%
-        add_model(rf_spec)
+  add_recipe(noticias_rec_embed) %>%
+  add_model(rf_spec)
 
 # Seteo de validación cruzada
 set.seed(1234)#ver si tengo que usar la misma semila que esta arriba
@@ -777,6 +938,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 ```
 
 ### Entrenamiento
+
 ```{r}
 # Entreno el modelo
 tune_params <- tune_grid(wf_embed,
@@ -795,8 +957,6 @@ tune_params <- read_rds('models/tune_params.rds')
 
 
 ```
-#VER completo lo que sigue
-
 
 ```{r}
 
@@ -810,12 +970,15 @@ metrics_df <- collect_metrics(tune_params) ####VER!
 
 
 ```{r}
+
 autoplot(tune_params)+
   theme_minimal()
+
 ```
 
 
 ### Entrenamiento
+
 ```{r}
 # Entreno el modelo # esto ya lo habría hecho arriba
 #tictoc::tic()
@@ -830,10 +993,15 @@ tictoc::toc()
 
 ### Evaluación
 Veamos los dos mejores modelos en términos de ROC:
+
 ```{r}
+
 show_best(tune_params, "roc_auc")
+
 ```
+
 Veamos el mejor modelo dentro de 1 error estándar:
+
 ```{r}
 best_ROC <- select_best(tune_params, "roc_auc")
 
@@ -843,19 +1011,22 @@ final_rf <- finalize_model(
 )
 
 final_rf
-
 ```
 
 ```{r}
+
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
   add_recipe(noticias_rec_embed) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
+
 ```
+
 ¿Cómo es la performance?
 
 ```{r}
+
 test_val <- tree_fit %>%
   predict(test_embed) %>%
   bind_cols(., test_embed)
@@ -871,15 +1042,11 @@ test_val <- predict(tree_fit, test_embed, type = "prob") %>%
   #bind_rows(recall(orientacion, .pred_class)) %>%
   #bind_rows(f_meas(orientacion, .pred_class))
 
-
-
-
 ```
 
 ¿Cómo son los resultados en comparación con los otros 2 modelos?
 
 ```{r}
-
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -907,4 +1074,193 @@ bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
 bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
 bind_rows(f_meas(preds_embed, orientacion, .pred_class))
 ```
-##Pruebas con Regresión logistica LASSO, una vez que funcione esto se puede ser con LASSO. Debemos trabajar con una modificacion de la variable "orientacion" hacia una variable dicotomcia.  mutate(orientacion = ifelse(orientacion %in% c('progresista', 'neutro'), 'no conservador', 'conservador'))
+Pruebas con Regresión logistica LASSO
+
+
+
+```{r cars}
+corpus_topic_5_lasso <- corpus_topic_5_muestra %>%
+  mutate(orientacion = ifelse(orientacion %in% c('progresista', 'neutro'), 'no conservador', 'conservador'))
+
+
+
+
+# Verificar los cambios
+table(corpus_topic_5_lasso$orientacion)
+```
+
+```{r}
+noticias_embed_lasso <- corpus_topic_5_lasso %>%
+        mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) %>%
+        mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
+
+```
+
+1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
+```{r}
+
+
+noticias_tidy_lasso <- noticias_embed_lasso %>%
+  mutate(title_id = row_number()) %>%
+  unnest_tokens(word, texto, 
+                to_lower=TRUE,
+                strip_punct=TRUE) 
+
+
+head 
+```
+2. Left-join de la tabla tokenizada de cada noticia con el embedding. De esta forma, cada palabra va a estar representada por un vector de 300 dimensiones, que se corresponde con un vector del embedding pre-entrenado.
+```{r}
+
+#
+noticias_tidy_lasso <- noticias_tidy_lasso %>%
+        left_join(embedding) %>%
+        drop_na()
+```
+
+3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una review.
+```{r}
+tictoc::tic()
+noticias_embed_lasso <- noticias_tidy_lasso %>%
+        group_by(title_id,orientacion) %>%
+        summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
+        ungroup()
+tictoc::toc()
+```
+
+Luego, dividimos los datos en conjuntos de entrenamiento y prueba. Podemos utilizar la función initial_split() de rsample para crear esta división binaria de los datos. El argumento orientación garantiza que la distribución del producto sea similar en el conjunto de entrenamiento y el conjunto de prueba. Dado que la división utiliza un muestreo aleatorio, establecemos una semilla para poder reproducir nuestros resultados.
+
+```{r}
+## Split
+set.seed(1234)
+noticias_split <- initial_split(noticias_embed_lasso, strata = orientacion)
+
+train_embed_lasso <- training(noticias_split)
+test_embed_lasso <- testing(noticias_split)
+
+#ver el balanceo en train
+table (train_embed_lasso$orientacion) #para ver el balanceo)
+
+```
+
+El parámetro `penalty`, es el equivlaente al $lambda$, es decir, se usa para la regularización es un hiperparámetro del modelo. No podemos conocer su mejor valor durante el entrenamiento del modelo, pero podemos estimar el mejor valor entrenando muchos modelos en conjuntos de datos remuestreados y explorando qué tan bien funcionan todos estos modelos. Construyamos una nueva especificación de modelo para la sintonización del modelo.
+
+
+```{r}
+
+
+## especifico el modelo /CAMBIAR EL MODELO
+lasso_spec <- logistic_reg(
+        penalty = tune(),
+        mixture = 1) %>%
+        set_mode("classification") %>%
+        set_engine("glmnet")
+
+
+# especifico la receta
+noticias_rec_embed_lasso <-
+  recipe(orientacion ~ ., data = train_embed_lasso) %>%
+  update_role("title_id", new_role = "ID")
+
+# especifico el flujo
+wf_embed <- workflow() %>% 
+        add_recipe(noticias_rec_embed_lasso) %>%
+        add_model(lasso_spec)
+
+# espefico la grilla
+grid_lasso <- grid_regular(penalty(), levels = 30)
+
+## Seteo de validación cruzada
+set.seed(234)
+embed_folds <- vfold_cv(train_embed_lasso, v = 5)
+
+stop
+```
+
+```
+
+### Entrenamiento
+```{r}
+# Entreno el modelo
+tictoc::tic()
+tune_lasso_embed <- tune_grid(
+        wf_embed,
+        embed_folds,
+        grid = grid_lasso,
+        control = control_resamples(save_pred = TRUE)
+)
+tictoc::toc()
+```
+
+### Evaluación
+Veamos los dos mejores modelos en términos de ROC:
+```{r}
+show_best(tune_lasso_embed, "roc_auc", n=2)
+```
+
+Veamos el mejor modelo dentro de 1 error estándar:
+```{r}
+chosen_auc_embed <- tune_lasso_embed %>%
+  select_by_one_std_err(metric = "roc_auc", -penalty)
+
+chosen_auc_embed
+```
+### Entrenamiento final
+Elegimos el mejor modelo...
+```{r}
+final_params_lasso_embed <- finalize_workflow(wf_embed, chosen_auc_embed)
+final_params_lasso_embed
+```
+
+Fiteemos el mejor modelo sobre el total del traning set:
+```{r}
+fitted_lasso_embed <- fit(final_params_lasso_embed, train_embed_lasso)
+```
+
+Hagamos su evaluación sobre el test-set
+```{r}
+preds_embed_lasso <- test_embed_lasso %>%
+        select(orientacion) %>%
+        bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="prob")) %>%
+        bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="class"))
+```
+
+Comparemos ahora ambos modelos... ¿qué pueden decir al respecto?
+
+**Embeddings**
+```{r}
+
+train_embed_lasso <- train_embed_lasso %>%
+  mutate(orientacion = factor(orientacion))
+
+# Calcular las métricas de evaluación
+metrics <- roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
+  bind_rows(accuracy(preds_embed_lasso, orientacion, .pred_class)) %>%
+  bind_rows(precision(preds_embed_lasso, orientacion, .pred_class)) %>%
+  bind_rows(recall(preds_embed_lasso, orientacion, .pred_class)) %>%
+  bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class))
+
+
+roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
+bind_rows(accuracy(preds_embed_lasso, orientacion, .pred_class)) %>%
+bind_rows(precision(preds_embed_lasso, orientacion, .pred_class)) %>%
+bind_rows(recall(preds_embed_lasso, orientacion, .pred_class)) %>%
+bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class))
+```
+
+```{r}
+library(ggplot2)
+
+# Seleccionar la variable de orientación y las probabilidades predichas
+predictions <- test_embed_lasso %>%
+  select(orientacion) %>%
+  bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type = "prob"))
+
+# Graficar la distribución de las probabilidades predichas para cada clase
+ggplot(predictions, aes(x = .pred_conservador)) +
+  geom_histogram(binwidth = 0.1, fill = "lightblue", color = "black") +
+  labs(title = "Distribución de Probabilidades Predichas para la Clase 'Conservador'",
+       x = "Probabilidad Predicha", y = "Frecuencia")
+```
+
+

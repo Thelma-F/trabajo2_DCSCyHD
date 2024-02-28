@@ -291,7 +291,7 @@ ggplot(top_words_tf, aes(x = tf * 1000,
 A mejorar:
         - ordenar por orden descendente las palabras
 
-```{r}
+```{r grafico_palabras_representativas}
 # Crear el gráfico
 ggplot(top_words_idf, aes(x = idf, 
                           y = fct_reorder(word, desc(idf)), 
@@ -307,6 +307,7 @@ ggplot(top_words_idf, aes(x = idf,
        subtitle = "julio - septiembre 2019", 
        caption = "Gráfico n° 2")
 
+
 ```
 
 #### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
@@ -315,7 +316,7 @@ A mejorar:
         - ordenar por orden descendente las palabras
         
 
-```{r grafico_palabras_características}
+```{r grafico_palabras_informativas}
 
 # Crear el gráfico
 ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
@@ -420,7 +421,7 @@ palabras_topicos %>%
 
 ```
 
-### Principales palabras por tópico en LDA
+### Gráfico 4: principales palabras por tópico en LDA
 
 A mejorar:
         - cambiar las referencias del eje x para que quede algo similar a "probablidad de aparición de la palabra en cierto tópico"
@@ -503,7 +504,7 @@ topicos_noticias |>
 ```
 
 
-### Gráfico LDA: tópicos en cada medio
+### Gráfico 5: tópicos en cada medio
 
 A mejorar:
         - Intercambiar lugares entre tópico y medio, así quedan un bloque de columnas de un medio ("La Nación", por ejemplo) donde aparecen sus tópicos más frecuentes
@@ -615,7 +616,7 @@ betas_stm %>%
   labs(title = "Principales palabras por Tópico",
        subtitle = "Según modelo STM", 
        caption = "Gráfico n° 6",
-  plot.title = element_text(size = 10))
+       plot.title = element_text(size = 10))
 
 ```
 
@@ -633,16 +634,18 @@ theta_stm_7 %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)) %>%
   drop_na() %>%
-  ggplot(aes(x=medio, y=mean, fill=medio)) + 
-    geom_col(position='dodge') +
-    facet_wrap(~topic) +
-    theme_minimal() +
-    theme(legend.position = "bottom",  # Colocar la leyenda debajo del gráfico
-          axis.text.x = element_blank()) +  # Quitar la leyenda del eje x
-    labs(title = "Principales palabras por Tópico según medio",
-          subtitle = "Según modelo STM", 
+  ggplot(aes(x = medio,
+             y = mean,
+             fill=medio)) + 
+  geom_col(position='dodge') +
+  facet_wrap(~topic) +
+  theme_minimal() +
+  theme(legend.position = "bottom",  # Colocar la leyenda debajo del gráfico
+        axis.text.x = element_blank()) +  # Quitar la leyenda del eje x
+  labs(title = "Principales palabras por Tópico según medio",
+       subtitle = "Según modelo STM", 
        caption = "Gráfico n° 7",  
-         plot.title = element_text(size = 14))  # Ajustar el tamaño del título del gráfico
+       plot.title = element_text(size = 14))  # Ajustar el tamaño del título del gráfico
  
 ```
 
@@ -674,8 +677,7 @@ rm(corpus_dtm, corpus_noticias, corpus_tf_idf_noticia, modelo_armado, palabras_t
 # Consigna 3) 
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
-ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del
-diario1.
+ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del diario1.
 
 Utilizar alguno de los modelos de clasificación vistos a lo largo de al
 Diplomatura (regresión logística, random forest, etc.). 
