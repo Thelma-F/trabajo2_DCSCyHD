@@ -508,7 +508,7 @@ noticias_dfm
 ```
 
 
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
 library(readr)
 # stm_7 <- read_rds('models/stm_7_prev_cont.rds'')
 

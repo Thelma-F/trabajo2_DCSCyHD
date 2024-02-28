@@ -356,14 +356,14 @@ ggplot(top_words_tf_idf, aes(x = tf_idf,
 
 # Consigna 2) 
 
-## a) ¿Cuáles son los tópicos principales en el corpus?
+a) ¿Cuáles son los tópicos principales en el corpus?
 
-## b) ¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta, cuáles son los supuestos del mismo. 
+b) ¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta, cuáles son los supuestos del mismo. 
 
-## c) Generar las visualizaciones más adecuadas para responder a las preguntas
+c) Generar las visualizaciones más adecuadas para responder a las preguntas
 
 
-## A)
+# LDA
 
 
 Si vemos los resultados ordenados por tf, se puede observar que existen 6 noticias que arrancan con "Últimas noticias de" y no contienen ninguna palabra (por eso la tf es 1: sólo ahí aparecen espacios vacíos). Deberíamos eliminarlos en el preprocesamiento.
@@ -390,14 +390,14 @@ corpus_tf_idf_noticia |>
             with_ties = FALSE) |> 
   print()
 
-rm(corpus_noticias)
+#rm(corpus_noticias)
 
 ```
 
+Creación de la Document Term Matrix (DTM) del corpus de noticias
 
 ```{r corpus_dtm}
 
-# Creación de la Document Term Matrix (DTM) del corpus de noticias
 corpus_dtm <- corpus_tf_idf_noticia %>%
   cast_dtm(term = word,
            document = titulo, 
@@ -409,22 +409,20 @@ corpus_dtm |>
 
 ```
 
+Ejecutamos el LDA con 7 tópicos
 
-```{r modelo_topicos}
-
-# corpus_noticias <- terra::na.omit(corpus_dtm)
-
-modelo_LDA7 <- topicmodels::LDA(corpus_dtm, 
+```{r Prueba con 7 tópicos}
+modelo_armado <- topicmodels::LDA(corpus_dtm, 
                               k = 7, 
                               control = list(seed = 1234567))
-
+write_rds(modelo_armado, 'models/LDA7.rds')
 ```
 
 
 ```{r prob_x_palabra}
 
                   # Si esta línea les tira algún error, hagan install.packages("reshape2")
-palabras_topicos <- tidy(modelo_LDA7, matrix = "beta") 
+palabras_topicos <- tidy(modelo_armado, matrix = "beta") 
 
 
 #Lo pasamos a porcentajes
@@ -433,8 +431,10 @@ palabras_topicos %>%
 
 ```
 
+Visualizamos las principales palabras por tópico en LDA
 
 ```{r top_palabras_topico}
+#Agrupamos por tópicos y seleccionamos las principales 15 palabras de cada uno
 
 top_palabras_topicos <- palabras_topicos %>%
   group_by(topic) %>%
@@ -442,21 +442,28 @@ top_palabras_topicos <- palabras_topicos %>%
   ungroup() %>%
   arrange(topic, -beta)
 
+#Creamos el gáfico 
+
 top_palabras_topicos %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   ggplot(aes(beta, term, fill = factor(topic))) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales='free_y') +
   scale_y_reordered() +
-  theme_minimal()
+  theme_minimal()+
+  labs(title = "Principales palabras por Tópico ",
+       subtitle = "Según modelo LDA", 
+       caption = "Gráfico n° 4",
+  plot.title = element_text(size = 10))
 
 ```
 
+Para observar qué títulos aparecen en las noticias del tópico 2 (el tópico menos claro)
+
 ```{r principales_noticias_x_topico}
 
-topicos_noticias <- tidy(modelo_LDA7, matrix = "gamma")
+topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
 
-# Para observar qué títulos aparecen en las noticias del tópico 2
 topicos_noticias |>
   filter(topic == 2) %>%
   filter(gamma > 0.9) |> 
@@ -465,9 +472,10 @@ topicos_noticias |>
 
 ```
 
+Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
+
 ```{r noticias_poco_clasificables}
 
-# Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
 topicos_noticias |> 
   # Ponemos un umbral de bajas chances de encajar en cualquier tópico
   filter(gamma < 0.3) |> 
@@ -480,108 +488,51 @@ topicos_noticias |>
 
 ```
 
+Armamos un gráfico LDA para observar qué tópicos tienen mayor representación en cada medio
 
 ```{r topicos_x_medio}
 
 topicos_noticias %>%
   rename(titulo = document) %>% 
-  # tenemos que renombrar la columna para que pueda hacerse el join
   left_join(noticias %>% select(titulo, medio) %>% unique()) %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)*100) %>%
   ggplot() +
-    geom_col(aes(x = topic,
+    geom_col(aes(x = factor(topic),
                  y = mean,
                  fill = medio), 
              position='dodge') +
-    theme_minimal()
+    theme_minimal() +
+    theme(legend.position = "bottom",  # Colocar la leyenda abajo del gráfico
+          legend.text=element_text(size=rel(0.8)),  # Achicar el texto de la leyenda
+          legend.title=element_text(size=rel(0.8)),  # Achicar el título de la leyenda
+          axis.text.x = element_text(angle = 0, hjust = 1)) +  # Rotar y ajustar texto del eje x
+    labs(title = "Tópicos por medio", 
+          subtitle = "Según modelo LDA", 
+       caption = "Gráfico n° 5")  
 
 ```
 
 
+# Revisar nombre de los tópicos LDA 7
 
+Tópico 1: Justicia y seguridad
 
+Tópico 2: Vida y Relaciones Personales 
+(vida, casa, gente, historia, mujer, familia, mundo, amor, vídeo, película, programa, música, hijo, padre)
 
+Tópico 3: Sociedad y Bienestar 
+(mujeres, personas, salud, vida, argentina, mundo, social, educación, país, sociedad, sistema, sociales, política, forma, nacional)
 
+Tópico 4: Economía y Política Internacional (millones, gobierno, país, argentina, dólares, acuerdo, presidente, Trump, unidos, mercado, ciento, pesos, dólar, banco, economía)
 
+Tópico 5: Política Nacional y Elecciones (
+Macri, Fernández, gobierno, presidente, frente, Alberto, candidato, Cristina, campaña, Argentina, paso, país, elecciones, nacional, Mauricio)
 
+Tópico 6: Problemas Urbanos y Ambientales (ciudad, personas, Aires, Argentina, país, agua, mundo, productos, nacional, san, zona, centro, sistema, metros, forma)
 
+Tópico 7: Deportes y Entretenimiento (equipo, partido, final, Argentina, Boca, copa, fútbol, club, River, mundial, argentino, selección, minutos, jugadores, mundo)
 
-STM- pruebas
-
-
-```{r}
-word_counts <- corpus_noticias %>%  
-        group_by(id,word) %>%
-        summarise(n=n()) %>%
-        ungroup()
-
-noticias_dfm <- word_counts %>%
-                cast_dfm(id, word, n)
-
-noticias_dfm
-```
-
-```{r}
-library(readr)
-stm_7 <- read_rds('C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
-
-metadata <- corpus_noticias %>%  
-        group_by(id,medio, titulo ) %>%
-        summarise(n=n()) %>%
-        ungroup() 
-
-
-stm_7 <- stm(documents = noticias_dfm,
-      K = 7,
-      prevalence = ~medio,
-      max.em.its = 75, 
-      data = metadata,
-      init.type = "Spectral")
- write_rds(stm_7, 'C:/Users/USUARIO/Documents/DCSCyHD/Módulo 5- Minería de texto/clase5/models/stm_15_prev.rds')
-
-
-```
-
-
-
-```{r}
-betas_stm <- tidy(stm_7, matrix='beta')
-doc_2_topics_stm <- tidy(stm_7, matrix='theta')
-```
-
-
-```{r}
-betas_stm %>%
-  group_by(topic) %>%
-  slice_max(beta, n = 15) %>% 
-  ungroup() %>%
-  arrange(topic, -beta) %>%
-  mutate(term = reorder_within(term, beta, topic)) %>%
-  ggplot(aes(beta, term, fill = factor(topic))) +
-  geom_col(show.legend = FALSE) +
-  facet_wrap(~ topic, scales='free_y') +
-  scale_y_reordered() +
-  theme_minimal()
-```
-
-
-```{r}
-labelTopics(stm_7)
-```
-
-
-```{r}
-#Queremos definir cómo está compuesto el tópico 4 porque es el menos claro, para eso le paso la información del modelo y le pido  que me de mayor información de este tópico (los 10 títulos que más alto scorean)
-
-findThoughts(stm_7,
-             texts = metadata %>% mutate(titulo = str_sub(titulo, 1, 200)) %>% select(titulo) %>% pull (),
-              n=20,
-              topics=4)
-
-
-#Astrología, salud y ciencia (también puede ser misceláneas que se usó en clase)
-```
 
 Comparando el modelo LDA contra el modelo STM
 
@@ -597,10 +548,23 @@ palabras_topicos
 
 topicos_noticias
 
+palabras_topicos %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 15) %>% 
+  ungroup() %>%
+  arrange(topic, -beta) %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales='free_y') +
+  scale_y_reordered() +
+  theme_minimal()
+
+
 doc_2_topics_lda <- topicos_noticias %>%
   rename(id=document) %>%
   mutate(id=as.integer(id)) %>%
-  left_join(noticias_tidy)
+  left_join(metadata)
 
 
 doc_2_topics_lda %>%
