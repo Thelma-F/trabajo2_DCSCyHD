@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+</head>
+<body>
+<div style="margin: 0 auto; display: table; margin-top: 1em;">
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<tbody>
+<tr style='border-top: 2px solid grey;'>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>Table: Top 10 palabras por IDF en cada medio</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'></td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|medio     |word                   |  n|        tf|      idf|    tf_idf|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|:---------|:----------------------|--:|---------:|--------:|---------:|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |alces                  | 29| 0.0000697| 2.079442| 0.0001449|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |emj                    | 27| 0.0000649| 2.079442| 0.0001349|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |khashoggi              | 26| 0.0000625| 2.079442| 0.0001299|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |mattarella             | 22| 0.0000529| 2.079442| 0.0001099|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |dorothea               | 21| 0.0000505| 2.079442| 0.0001049|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |ps                     | 21| 0.0000505| 2.079442| 0.0001049|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |lagaronne              | 20| 0.0000481| 2.079442| 0.0000999|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |fujimori               | 18| 0.0000432| 2.079442| 0.0000899|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |ravensbrück            | 18| 0.0000432| 2.079442| 0.0000899|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|clarin    |balcedo                | 17| 0.0000408| 2.079442| 0.0000849|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |infortunada            | 12| 0.0001196| 2.079442| 0.0002486|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |garavelli              |  9| 0.0000897| 2.079442| 0.0001865|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |malvivientes           |  7| 0.0000697| 2.079442| 0.0001450|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |andanese               |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |epp                    |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |etna                   |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |gep                    |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |lufkin                 |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |paredescrónica         |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|cronica   |penna                  |  6| 0.0000598| 2.079442| 0.0001243|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |pemex                  | 56| 0.0002133| 2.079442| 0.0004435|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |lozoya                 | 43| 0.0001638| 2.079442| 0.0003406|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |dodi                   | 27| 0.0001028| 2.079442| 0.0002139|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |bartlett               | 24| 0.0000914| 2.079442| 0.0001901|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |kraft                  | 23| 0.0000876| 2.079442| 0.0001822|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |sexenio                | 22| 0.0000838| 2.079442| 0.0001742|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |pike                   | 21| 0.0000800| 2.079442| 0.0001663|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |tuárez                 | 21| 0.0000800| 2.079442| 0.0001663|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |aldaoud                | 19| 0.0000724| 2.079442| 0.0001505|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|infobae   |pratt                  | 19| 0.0000724| 2.079442| 0.0001505|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |qt                     | 20| 0.0000863| 2.079442| 0.0001795|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |rejtman                | 18| 0.0000777| 2.079442| 0.0001615|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |davin                  | 17| 0.0000734| 2.079442| 0.0001525|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |grosby                 | 14| 0.0000604| 2.079442| 0.0001256|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |néspolo                | 14| 0.0000604| 2.079442| 0.0001256|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |stevie                 | 13| 0.0000561| 2.079442| 0.0001166|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |downton                | 12| 0.0000518| 2.079442| 0.0001077|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |montagna               | 12| 0.0000518| 2.079442| 0.0001077|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |isabelita              | 11| 0.0000475| 2.079442| 0.0000987|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|lanacion  |kind                   | 11| 0.0000475| 2.079442| 0.0000987|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |femininja              |  6| 0.0001330| 2.079442| 0.0002766|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |kristine               |  6| 0.0001330| 2.079442| 0.0002766|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |galasso                |  5| 0.0001108| 2.079442| 0.0002305|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |coella                 |  4| 0.0000887| 2.079442| 0.0001844|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |fifacom                |  4| 0.0000887| 2.079442| 0.0001844|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |levrino                |  4| 0.0000887| 2.079442| 0.0001844|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |mariadelmarcuellomolar |  4| 0.0000887| 2.079442| 0.0001844|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |rabiya                 |  4| 0.0000887| 2.079442| 0.0001844|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |tambó                  |  4| 0.0000887| 2.079442| 0.0001844|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|minutouno |aaded                  |  3| 0.0000665| 2.079442| 0.0001383|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |protected              | 41| 0.0001454| 2.079442| 0.0003023|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |magnone                | 14| 0.0000496| 2.079442| 0.0001032|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |sm                     | 14| 0.0000496| 2.079442| 0.0001032|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |carabineros            | 13| 0.0000461| 2.079442| 0.0000958|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |isauro                 | 13| 0.0000461| 2.079442| 0.0000958|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |minco                  | 13| 0.0000461| 2.079442| 0.0000958|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |miquela                | 13| 0.0000461| 2.079442| 0.0000958|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |otrxs                  | 13| 0.0000461| 2.079442| 0.0000958|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |caff                   | 12| 0.0000425| 2.079442| 0.0000885|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|pagina12  |decima                 | 12| 0.0000425| 2.079442| 0.0000885|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |sessa                  | 30| 0.0000830| 2.079442| 0.0001726|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |fh                     | 29| 0.0000802| 2.079442| 0.0001668|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |kurz                   | 24| 0.0000664| 2.079442| 0.0001381|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |gallosi                | 23| 0.0000636| 2.079442| 0.0001323|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |weich                  | 22| 0.0000609| 2.079442| 0.0001266|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |chía                   | 21| 0.0000581| 2.079442| 0.0001208|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |cilindros              | 20| 0.0000553| 2.079442| 0.0001150|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |euromayor              | 19| 0.0000526| 2.079442| 0.0001093|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |ambassador             | 18| 0.0000498| 2.079442| 0.0001035|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|perfil    |ag                     | 17| 0.0000470| 2.079442| 0.0000978|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |canticuénticos         |  6| 0.0001393| 2.079442| 0.0002896|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |todosel                |  6| 0.0001393| 2.079442| 0.0002896|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |télamla                |  6| 0.0001393| 2.079442| 0.0002896|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |chagas                 |  5| 0.0001161| 2.079442| 0.0002413|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |nacionalel             |  5| 0.0001161| 2.079442| 0.0002413|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |pct                    |  5| 0.0001161| 2.079442| 0.0002413|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |sassoli                |  5| 0.0001161| 2.079442| 0.0002413|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |exar                   |  4| 0.0000928| 2.079442| 0.0001931|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |hobbs                  |  4| 0.0000928| 2.079442| 0.0001931|</td>
+<td style='border-top: 2px solid grey; border-bottom: 2px solid grey; text-align: center;'>|telam     |kovacs                 |  4| 0.0000928| 2.079442| 0.0001931|</td>
+</tr>
+</tbody>
+</table>
+</div>
+</body>
+</html>

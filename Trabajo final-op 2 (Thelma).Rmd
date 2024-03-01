@@ -49,27 +49,43 @@ El corpus contiene, las siguientes variables:
     - Preprocesarlos (normalizar texto, eliminar stopwords)
     - Generar una matriz token-por-fila para cada documento
 
-# Se cargan las librerías a emplear
+Trabajo Final
+
+*Introducción*
+
+# Preparación datos
+
+## Se cargan las librerías a emplear
 
 ```{r librerias}
 
 library(tidyverse)
 library(tidytext)
+
 # library(topicmodels)
+# library(stm)
+# library(tidymodels)
+
 # library(tictoc)
-library(stm)
-library (tidymodels)
 # library(reshape2)
-#library(textrecipes)
-#library(textclean)
-#library(rsample)
-#library(themis)
-#library(parsnip)
+
+# Las siguientes librerías están incluidas en algunas de las anteriores
+    # library(ggplot2)
+    # library(glmnet) 
+    # library(parsnip)
+    # library(ranger)
+    # library(rsample)
+    # library(textrecipes)
+    # library(textclean)
+    # library(themis)
+    # library(tune)
+    # library(workflows)
+    # library(yardstick)
 
 
 ```
 
-# Se carga el dataset
+## Se carga el dataset
 
 ```{r base_noticias}
 
@@ -79,15 +95,16 @@ noticias |>
   slice(1:50) |> 
   print(noticias) |> 
   View()
+
 ```
 
 # Preprocesamiento de los datos
 
 ## Construimos la tabla de tokens del texto
 
-```{r limpieza_noticias, warning=FALSE}
+```{r limpieza_noticias}
 
-# Armado del listado de noticias que no contienen texto
+# Arma el listado de noticias que no tienen texto
 noticias_vacias <- noticias |> 
   filter(is.na(texto))
 
@@ -95,7 +112,9 @@ noticias_vacias <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_vacias, by = c("titulo" = "titulo"))
 
-# Armado del listado de noticias con errores en el webscrapeo, ya que inician con "Article 
+
+
+# Arma el listado de noticias que tuvieron errores en el webscrapeo, ya que inician con "Article 
 # download()' failed with" o con 'NoneType' object has no attribute 'find_all'
 noticias_mal_descargadas <- noticias |> 
   # El ^ antes de artículo es una expresión regular para marcar que debe buscarse al inicio del título
@@ -105,14 +124,18 @@ noticias_mal_descargadas <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_mal_descargadas, by = c("titulo" = "titulo"))
 
+
+
 noticias <- noticias |> 
-  # Elimina puntuación y valores numéricos y, posteriormente, lleva todo a minúsculas
+  # Elimina puntuación y valores numéros y, posteriormente, lleva todo a minúsculas
   mutate(texto = tolower(gsub("[[:punct:]0-9]", "", texto))) %>%
   # Elimina múltiples espaciados erróneamente ingresados
   mutate(texto = str_squish(texto))
 
-# Armado del listado de noticias que, después de limpieza de caracteres, se considera que son  cortas y producen ruido a la hora de evaluar las term frequency (tf)
 
+
+# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son 
+# demasiado cortas y producen ruido a la hora de evaluar las term frequency (tf)
 noticias_cortas <- noticias |> 
   # "\\S+" es la expresión regular para detectar palabras con un espacio
   filter(str_count(texto, "\\S+") < 40)
@@ -122,9 +145,9 @@ noticias <- noticias |>
   anti_join(noticias_cortas, by = c("titulo" = "titulo"))
 
 
-# Armado del listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
-# con "envía tu comentario ver legales los comentarios publicados son"
 
+# Arma el listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician
+# con "envía tu comentario ver legales los comentarios publicados son"
 noticias_error_ln <- noticias |> 
   filter(str_detect(texto, "^envía tu comentario ver legales los comentarios publicados son"))
 
@@ -145,6 +168,8 @@ noticias_tidy |>
   slice(1:50) |> 
   print()
 
+
+
 ```
 
 ## Cargamos el diccionario de stopwords y agregamos stopwords específicas
@@ -161,17 +186,7 @@ stop_words |>
   print()
 
 stop_words <- stop_words %>%
-  bind_rows(tibble(word = c("\tminutouno.com", "\tpáginai12", "a", "además",
-                            "además", "ahí", "allí", "ante", "año", "años", "así",
-                            "aún", "bajo", "comentar", "comentario", "como", "cómo", "compartir",
-                            "compartir", "con", "contra", "cronica.com.ar", "cronicacomar", 
-                            "de", "desde", "después", "día", "días", "durante","él", "email", 
-                            "embed", "en", "entre", "está", "están", "facebook", "fuente", 
-                            "guardar", "gusta", "había", "hacia", "hasta", "jpe", "jpg", "l.l",
-                            "leé", "loading", "mail", "más", "mediante", "minutouno.com",
-                            "nacion", "páginai", "páginai12", "para", "podría", "por", 
-                            "pristupluk", "que", "qué", "según", "será", "si", "sí", "sin", 
-                            "sobre", "sólo", "también", "tenía", "través", "twitter", "whatsapp")))
+  bind_rows(tibble(word = c("\tminutouno.com", "\tpáginai12", "a", "además", "además", "ahí", "allí", "ante", "año", "años", "así", "aún", "bajo", "comentar", "comentario", "como", "cómo", "compartir", "compartir", "con", "contra", "cronica.com.ar", "cronicacomar", "de", "desde", "después", "día", "días", "durante","él", "email", "embed", "en", "entre", "está", "están", "facebook", "fuente", "guardar", "gusta", "había", "hacia", "hasta", "jpe", "jpg", "l.l",      "leé", "loading", "mail", "más", "mediante", "minutouno.com", "nacion", "páginai", "páginai12", "para", "podría", "por", "pristupluk", "que", "qué", "según", "será", "si", "sí", "sin", "sobre", "sólo", "también", "tenía", "través", "twitter", "whatsapp", "fvazquezcronicacomar", "cronicavirales", "minutounocom", "telamla", "venturacrónica", "thieberger", "viercovich", "nersesian", "lucianobugner", "foglia", "jch", "failla", "foglia", "morenocrónica", "frannutti","bugner", "ernie", "zenteno", "nespolo", "marelli", "ll", "nutti", "massobrio","devito", "adami")))
 
 ```
 
@@ -218,14 +233,12 @@ corpus_tf_idf_medio |>
 
 # Consigna 1) 
 
-a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios? 
-
-b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el
-curso: tf, tf-idf, etc.) 
-
-c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
+    - a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios?
+    - b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el curso: tf, tf-idf, etc.)
+    - c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
 
+## A) y B)
 
 ### Armamos un corpus con las tf, idf y las tf_idf por medio
 
@@ -233,7 +246,7 @@ c) Generar las visualizaciones que considere más pertinentes para responder la 
 
 ```{r todos_los_medios}
 
-top_words_tf <- corpus_tf_idf_medio %>%
+ top_words_tf <- corpus_tf_idf_medio %>%
   group_by(medio) %>%
   slice_max(n = 10, 
             # Si seteamos otra variable en "order_by", obtenemos otra respuesta posible
@@ -259,6 +272,7 @@ top_words_idf <- corpus_tf_idf_medio %>%
   
 top_words_idf |>   
   print()
+
 ```
 
 #### Buscamos las TF_IDF (la frecuencia ponderada o ajustada por la importancia que tiene en el corpus)
@@ -277,20 +291,48 @@ top_words_tf_idf  |>
 ```
 
 
-## Gráficos
+### C) Gráficos
 
-### Gráfico 1: palabras más frecuentes (tf)
+#### Gráfico 1: palabras más frecuentes (tf)
+
+A mejorar:
+        - ordenar por orden descendente las palabras
+
+
+
 
 ```{r grafico_palabras_frecuentes}
+#Opción 2 ordenado
 
-# Crear el gráfico
+# Ordenar los datos por frecuencia (TF) en orden descendente para cada medio
+top_words_tf <- top_words_tf %>%
+  group_by(word, medio, tf) %>% 
+  arrange(medio, desc(-tf))
+
+
 ggplot(top_words_tf, aes(x = tf, 
-                               y = fct_reorder(word, desc(tf)), 
-                               fill = medio)) +
+                         y = reorder_within(word, tf, medio), 
+                         fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "Palabra", 
-       y = "TF") +
+  labs(x = "Frecuencia (TF) cada 1.000 palabras", 
+       y = "Término") +
+  facet_wrap(~ medio, scales = "free_y", ncol = 3) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Las 10 palabras más utilizadas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 1") +
+  labs(y = "Palabra") 
+
+
+
+#Opción 2 sin ordenar pero prolijo
+ggplot(top_words_tf, aes(x = tf, y = word, fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+  labs(x = "Frecuencia (TF) cada 1.000 palabras", 
+       y = "Término") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal() +
   theme(legend.position = "none") +
@@ -299,58 +341,102 @@ ggplot(top_words_tf, aes(x = tf,
        caption = "Gráfico n° 1")
 
 
+
 ```
 
-### Gráfico 2: palabras más informativas (idf)
+#### Tabla
+
 
 ```{r}
-# Crear el gráfico
-ggplot(top_words_idf, aes(x = idf, 
-                               y = fct_reorder(word, desc(tf)), 
-                               fill = medio)) +
-  geom_col() +
-  scale_fill_discrete(name = "Medio") +
-  labs(x = "TF", 
-       y = "Palabra") +
-  facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()+
-  theme(legend.position = "none") +
-  labs(title = "Las 10 palabras más informativas en cada medio",
-       subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 2",
-       plot.title = element_text(size = 10))
-
+library(knitr)
+top_words_idf %>%
+   select(medio, word, idf) %>% 
+  kable(caption = "Top 10 palabras por IDF en cada medio")
 
 ```
 
 
-### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+#### Gráfico 2: palabras más representativas (idf)
 
-```{r grafico_palabras_características}
+A mejorar:
+        - ordenar por orden descendente las palabras
 
+```{r grafico_palabras_representativas}
 # Crear el gráfico
-ggplot(top_words_tf_idf, aes(x = tf_idf, 
-                               y = fct_reorder(word, desc(tf)), 
-                               fill = medio)) +
+ggplot(top_words_idf, aes(x = idf, 
+                          y = fct_reorder(word, desc(idf)), 
+                          fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-  labs(x = "TF", 
+  labs(x = "Frecuencia inversa entre medios (IDF)", 
+       y = "Palabra") +
+  facet_wrap(~medio, scales = "free_y") +
+  theme_minimal()+
+  theme(legend.position = "none") +
+  labs(title = "Las 10 palabras más representativas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 2")
+
+
+```
+
+#### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+
+A mejorar:
+        - ordenar por orden descendente las palabras
+        
+
+```{r grafico_palabras_informativas}
+#Opción 1 ordenado
+
+# Ordenar los datos por frecuencia (TF) en orden descendente para cada medio
+top_words_tf_idf <- top_words_tf_idf %>%
+  group_by(word, medio, tf_idf) %>% 
+  arrange(medio, desc(-tf_idf))
+
+
+ggplot(top_words_tf, aes(x = tf_idf, 
+                         y = reorder_within(word, tf_idf, medio), 
+                         fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+    labs(x = "TF-IDF cada 1.000 palabras", 
+       y = "Palabra") +
+  facet_wrap(~ medio, scales = "free_y", ncol = 3) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+   labs(title = "Las 10 palabras más informativas en cada medio",
+       subtitle = "julio - septiembre 2019", 
+       caption = "Gráfico n° 2" )
+
+
+#Opción 2 sin ordenar pero prolijo 
+
+# Crear el gráfico
+ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
+                             y = word, 
+                             fill = medio)) +
+  geom_col() +
+  scale_fill_discrete(name = "Medio") +
+  labs(x = "TF-IDF cada 1.000 palabras", 
        y = "Palabra") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal()+
   theme(legend.position = "none") +
   labs(title = "Las 10 palabras más informativas en cada medio",
        subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 3" )
+       caption = "Gráfico n° 2" )
 
 ```
 
 ```{r elimina_objetos}
 
 # Elimina objetos que ya no necesitamos
-#rm(top_words_by_medio, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
+rm(top_words_tf, top_words_idf, top_words_tf_idf, corpus_tf_idf_medio, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 
 ```
+
+
 
 
 

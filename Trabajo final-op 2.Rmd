@@ -142,17 +142,7 @@ stop_words |>
   print()
 
 stop_words <- stop_words %>%
-  bind_rows(tibble(word = c("\tminutouno.com", "\tpáginai12", "a", "además",
-                            "además", "ahí", "allí", "ante", "año", "años", "así",
-                            "aún", "bajo", "comentar", "comentario", "como", "cómo", "compartir",
-                            "compartir", "con", "contra", "cronica.com.ar", "cronicacomar", 
-                            "de", "desde", "después", "día", "días", "durante","él", "email", 
-                            "embed", "en", "entre", "está", "están", "facebook", "fuente", 
-                            "guardar", "gusta", "había", "hacia", "hasta", "jpe", "jpg", "l.l",
-                            "leé", "loading", "mail", "más", "mediante", "minutouno.com",
-                            "nacion", "páginai", "páginai12", "para", "podría", "por", 
-                            "pristupluk", "que", "qué", "según", "será", "si", "sí", "sin", 
-                            "sobre", "sólo", "también", "tenía", "través", "twitter", "whatsapp")))
+  bind_rows(tibble(word = c("\tminutouno.com", "\tpáginai12", "a", "además", "además", "ahí", "allí", "ante", "año", "años", "así", "aún", "bajo", "comentar", "comentario", "como", "cómo", "compartir", "compartir", "con", "contra", "cronica.com.ar", "cronicacomar", "de", "desde", "después", "día", "días", "durante","él", "email", "embed", "en", "entre", "está", "están", "facebook", "fuente", "guardar", "gusta", "había", "hacia", "hasta", "jpe", "jpg", "l.l",      "leé", "loading", "mail", "más", "mediante", "minutouno.com", "nacion", "páginai", "páginai12", "para", "podría", "por", "pristupluk", "que", "qué", "según", "será", "si", "sí", "sin", "sobre", "sólo", "también", "tenía", "través", "twitter", "whatsapp", "fvazquezcronicacomar", "cronicavirales", "minutounocom", "telamla", "venturacrónica", "thieberger", "viercovich", "nersesian", "lucianobugner", "foglia", "jch", "failla", "foglia", "morenocrónica", "frannutti","bugner", "ernie", "zenteno", "nespolo", "marelli", "ll", "nutti", "massobrio","devito", "adami")))
 
 ```
 
@@ -260,12 +250,6 @@ top_words_tf_idf  |>
 
 #### Gráfico 1: palabras más frecuentes (tf)
 
-A mejorar:
-        - ordenar por orden descendente las palabras
-
-
-
-
 ```{r grafico_palabras_frecuentes}
 
 
@@ -286,35 +270,21 @@ ggplot(top_words_tf, aes(x = tf * 1000,
 
 ```
 
-#### Gráfico 2: palabras más representativas (idf)
 
-A mejorar:
-        - ordenar por orden descendente las palabras
+#### Tabla
 
-```{r grafico_palabras_representativas}
-# Crear el gráfico
-ggplot(top_words_idf, aes(x = idf, 
-                          y = fct_reorder(word, desc(idf)), 
-                          fill = medio)) +
-  geom_col() +
-  scale_fill_discrete(name = "Medio") +
-  labs(x = "Frecuencia inversa entre medios (IDF)", 
-       y = "Palabra") +
-  facet_wrap(~medio, scales = "free_y") +
-  theme_minimal()+
-  theme(legend.position = "none") +
-  labs(title = "Las 10 palabras más representativas en cada medio",
-       subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 2")
 
+```{r}
+library(knitr)
+top_words_idf %>%
+   select(medio, word, idf) %>% 
+  kable(caption = "Top 10 palabras por IDF en cada medio")
 
 ```
 
-#### Gráfico 3: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
 
-A mejorar:
-        - ordenar por orden descendente las palabras
-        
+#### Gráfico 2: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+
 
 ```{r grafico_palabras_informativas}
 
@@ -331,7 +301,7 @@ ggplot(top_words_tf_idf, aes(x = tf_idf *1000,
   theme(legend.position = "none") +
   labs(title = "Las 10 palabras más informativas en cada medio",
        subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 3" )
+       caption = "Gráfico n° 2" )
 
 ```
 
