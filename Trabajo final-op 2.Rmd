@@ -676,8 +676,6 @@ rm(corpus_dtm, corpus_noticias, corpus_tf_idf_noticia, modelo_armado, palabras_t
 
 # Consigna 3) 
 
-# Consigna 3) 
-
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por
 ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del
 diario1. 
