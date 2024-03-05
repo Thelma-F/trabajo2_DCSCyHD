@@ -668,6 +668,9 @@ noticias_topico_5 <- topicos_noticias |>
   filter(topic == 5,
          gamma > 0.7)
 
+# Eliminamos lo que ya no es necesario
+rm(topicos_noticias)
+
 ```
 
 ## PRUEBA 1	RANDOM FOREST:
@@ -930,14 +933,16 @@ print (preds_embed)
 
 ```
 
-**Embeddings**
 
-```{r}
+
+```{r metricas_test}
+
 roc_auc(preds_embed, orientacion, .pred_conservador) %>%
 bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
 bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
 bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
 bind_rows(f_meas(preds_embed, orientacion, .pred_class))
+
 ```
 
 
@@ -1734,7 +1739,7 @@ corpus_noticias_t5 <- noticias_topico_5 |>
 
 corpus_noticias_t5 |> 
   count(medio) |> 
-  View()
+  print()
 ```
 
 #### Preprocesamiento: tokenización y embedding
@@ -1889,6 +1894,7 @@ noticias_balanceadas |>
   mutate(porcentaje = round((n/sum(n)) * 100, digits = 2)) |> 
   View()
 
+
 # Eliminamos, ya que vamos a trabajar sólo con el balanceado a partir de ahora
 # rm(noticias_c_embedding)
 ```
@@ -1909,6 +1915,8 @@ test_embed <- testing(noticias_split)
 # ver el balanceo en train
 table(train_embed$orientacion)
 
+# Elimino lo que ya no necesito
+rm(noticias_split)
 ```
 
 ### Hiperparámetros: tuneo y validación cruzada
@@ -1921,7 +1929,7 @@ Ahora, hay que generar el modelo de random forest. Esto lo hacemos con la funci�
 
 ```{r hiperparametros_a_tunear}
 
-rf_spec <- rand_forest(trees = 100,
+rf_spec <- rand_forest(trees = 1000,
                        mtry = tune(),
                        min_n = tune()) %>%
   set_mode("classification") %>%
@@ -1941,6 +1949,7 @@ El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una esp
 # especifico la receta
 noticias_rec_embed <- train_embed |> 
   recipe(orientacion ~ .) |> 
+  step_rm(medio) |> 
   update_role("title_id", new_role = "id")
   #step_downsample(orientacion, under_ratio = 1) #esto sería para balancear las clases
 
@@ -1969,11 +1978,15 @@ wf_embed <- workflow() %>%
  
 # Entreno el modelo
 
+tictoc::tic()
+
 tune_params <- tune_grid(wf_embed,
                          resamples = embed_folds,
-                         grid = 17,
+                         grid = 30,
                          metrics = metric_set(precision, recall,
                                               roc_auc, f_meas))
+
+tictoc::toc()
 
 write_rds(tune_params, 'models/tune_params_6.rds')
 
@@ -2004,7 +2017,7 @@ tune_params |>
 
 ```
 
-### Evaluación
+### Evaluación hiperparámetros
 Veamos los  mejores modelos en términos de ROC:
 
 ```{r}
@@ -2022,7 +2035,11 @@ best_ROC <- select_best(tune_params, "roc_auc")
 final_rf <- finalize_model(rf_spec,
                            best_ROC)
 
-final_rf
+# Modelo final
+print(final_rf)
+
+# Eliminamos lo que no necesitamos
+rm(best_ROC)
 
 ```
 
@@ -2036,6 +2053,7 @@ tree_fit <- workflow() %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
 
+tree_fit
 ```
 
 
@@ -2049,15 +2067,25 @@ preds_embed <- test_embed %>%
 
 preds_embed |> 
   arrange(desc(.pred_conservador))
+  #count(orientacion, .pred_class)
 
 ```
 
-**Embeddings**
+```{r metricas_test}
+
+modelo_6 <- roc_auc(preds_embed, orientacion, c(.pred_conservador, .pred_neutro, .pred_progresista)) %>%
+  bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
+  mutate(modelo = "modelo_6")
+
+```
 
 ```{r}
-roc_auc(preds_embed, orientacion, .pred_class) %>%
-bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(f_meas(preds_embed, orientacion, .pred_class))
+
+modelo_1 |> 
+  bind_rows()
+
 ```
+
