@@ -394,21 +394,21 @@ top_words_tf_idf <- top_words_tf_idf %>%
   group_by(word, medio, tf_idf) %>% 
   arrange(medio, desc(-tf_idf))
 
-
-ggplot(top_words_tf, aes(x = tf_idf, 
-                         y = reorder_within(word, tf_idf, medio), 
-                         fill = medio)) +
+      
+ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
+                             y = reorder_within(word, tf_idf, medio), 
+                             fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
-    labs(x = "TF-IDF cada 1.000 palabras", 
+  labs(x = "TF-IDF cada 1.000 palabras", 
        y = "Palabra") +
-  facet_wrap(~ medio, scales = "free_y", ncol = 3) +
-  theme_minimal() +
+  facet_wrap(~medio, scales = "free_y") +
+  theme_minimal()+
   theme(legend.position = "none") +
-   labs(title = "Las 10 palabras más informativas en cada medio",
+  labs(title = "Las 10 palabras más informativas en cada medio",
        subtitle = "julio - septiembre 2019", 
-       caption = "Gráfico n° 2" )
-
+       caption = "Gráfico n° 2")
+                         
 
 #Opción 2 sin ordenar pero prolijo 
 
