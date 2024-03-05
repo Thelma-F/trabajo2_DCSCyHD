@@ -253,13 +253,10 @@ top_words_tf_idf  |>
 #### Gráfico 1: palabras más frecuentes (tf)
 
 ```{r grafico_palabras_frecuentes}
-
-
-# Crear el gráfico
-ggplot(top_words_tf, 
-       aes(x = tf * 1000, 
-           y = fct_reorder(word, desc(tf)), 
-           fill = medio)) +
+#Gráfico
+ggplot(top_words_tf, aes(x = tf, 
+                         y = word, 
+                         fill = medio)) +
   geom_col() +
   scale_fill_discrete(name = "Medio") +
   labs(x = "Frecuencia (TF) cada 1.000 palabras", 
@@ -291,7 +288,7 @@ top_words_idf %>%
 
 ```{r grafico_palabras_informativas}
 
-# Crear el gráfico
+# Gráfico
 ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
                              y = word, 
                              fill = medio)) +
@@ -324,6 +321,7 @@ rm(top_words_tf, top_words_idf, top_words_tf_idf, corpus_tf_idf_medio, noticias_
 
 
 ## LDA
+
 
 ```{r corpus_tf_idf_noticia}
 
@@ -364,6 +362,8 @@ corpus_dtm |>
 ```
 
 
+Ejecutamos el LDA con 7 tópicos
+
 ```{r modelo_topicos, eval=FALSE, include=FALSE}
 
 # El encabezado de este código está seteado por default para no correr; así, cuando se pone "Run all code", este paso se saltea
@@ -384,6 +384,7 @@ modelo_armado <- read_rds('models/LDA7.rds')
 
 ```
 
+
 ```{r prob_x_palabra}
 
                   # Si esta línea les tira algún error, hagan install.packages("reshape2")
@@ -396,7 +397,9 @@ palabras_topicos %>%
 
 ```
 
-### Gráfico 4: principales palabras por tópico en LDA
+### Gráfico 3: principales palabras por tópico en LDA
+
+Visualizamos las principales palabras por tópico en LDA
 
 ```{r top_palabras_topico}
 # Agrupamos por tópicos y seleccionamos las principales 15 palabras de cada uno
@@ -406,6 +409,21 @@ top_palabras_topicos <- palabras_topicos %>%
   slice_max(beta, n = 15) %>% 
   ungroup() %>%
   arrange(topic, -beta)
+
+# Etiquetamos los tópicos
+
+top_palabras_topicos %>%
+  select(topic, term, beta) %>%
+  mutate(topic = case_when(
+    topic == 1 ~ "Justicia y seguridad",
+    topic == 2 ~ "Vida y relaciones personales",
+    topic == 3 ~ "Sociedad y bienestar",
+    topic == 4 ~ "Economía y política internacional",
+    topic == 5 ~ "Política nacional y elecciones",
+    topic == 6 ~ "Problemas urbanos y ambientales",
+    topic == 7 ~ "Deportes",
+    TRUE ~ as.character(topic)
+    ))
 
 # Creamos el gráfico
 
@@ -422,11 +440,13 @@ top_palabras_topicos %>%
   theme_minimal()+
   labs(title = "Principales palabras por Tópico ",
        subtitle = "Según modelo LDA", 
-       caption = "Gráfico n° 4",
+       caption = "Gráfico n° 3",
        plot.title = element_text(size = 10))
 
 ```
 
+
+Para observar qué títulos aparecen en las noticias del 2 (el tópico menos claro)
 
 ```{r noticias_x_topico}
 
@@ -435,19 +455,19 @@ topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
 
 ```
 
-Para observar qué títulos aparecen en las noticias del tópico 5
+Para observar qué títulos aparecen en las noticias del tópico 2
 
 
 ```{r top_noticias_x_topico, eval=FALSE, include=FALSE}
 
-# Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 5)
+# Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 2)
 
 
 
 
 # Para observar qué títulos aparecen en las noticias del tópico 5
 topicos_noticias |>
-  filter(topic == 5) %>%
+  filter(topic == 2) %>%
   filter(gamma > 0.9) |> 
   mutate(gamma = round(gamma, 5)) |> 
   View()
@@ -462,9 +482,6 @@ Para observar cuáles noticias no parecen encajar bien en ninguno de los tópico
 
 # Este código no se corre, es sólo para revisar qué noticias no estarían perteneciendo claramente a ningún tópico
 
-
-
-
 topicos_noticias |> 
   # Ponemos un umbral de bajas chances de encajar en cualquier tópico
   filter(gamma < 0.3) |> 
@@ -477,13 +494,7 @@ topicos_noticias |>
 
 ```
 
-
-### Gráfico 5: tópicos en cada medio
-
-A mejorar:
-        - Intercambiar lugares entre tópico y medio, así quedan un bloque de columnas de un medio ("La Nación", por ejemplo) donde aparecen sus tópicos más frecuentes
-        - Ordenar los tópicos dentro de cada medio de mayor a menor (tal vez, tal vez queda bien el orden de los tópicos tal cual viene)
-        - Poner nombres/ etiquetas a los tópicos así quedan explicitados y no son números nomás
+### Gráfico 4: Armamos un gráfico LDA para observar qué tópicos tienen mayor representación en cada medio
 
 ```{r topicos_x_medio}
 
@@ -493,50 +504,38 @@ topicos_noticias %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)*100) %>%
   ggplot() +
-  geom_col(aes(x = factor(topic),
-               y = mean,
-               fill = medio), 
-           position='dodge') +
-  theme_minimal() +
-         # Colocar la leyenda abajo del gráfico
-  theme(legend.position = "bottom", 
-        # Achicar el texto de la leyenda
-        legend.text = element_text(size = rel(0.8)),
-        # Achicar el título de la leyenda
-        legend.title = element_text(size = rel(0.8)),
-        # Rotar y ajustar texto del eje x
-        axis.text.x = element_text(angle = 0, hjust = 1)) +  
-  labs(title = "Medios por tópico", 
-       subtitle = "Según modelo LDA", 
-       caption = "Gráfico n° 5")  
+    geom_col(aes(x = factor(topic),
+                 y = mean,
+                 fill = medio), 
+             position='dodge') +
+    theme_minimal() +
+    theme(legend.position = "bottom",  # Colocar la leyenda abajo del gráfico
+          legend.text=element_text(size=rel(0.8)),  # Achicar el texto de la leyenda
+          legend.title=element_text(size=rel(0.8)),  # Achicar el título de la leyenda
+          axis.text.x = element_text(angle = 0, hjust = 1)) +  # Rotar y ajustar texto del eje x
+    labs(title = "Tópicos por medio", 
+          subtitle = "Según modelo LDA", 
+       caption = "Gráfico n° 4")  
 
 ```
 
-
-### Revisar nombre de los tópicos LDA 7
+### Tópicos resultantes LDA 
 
 Tópico 1: Justicia y seguridad
-
 Tópico 2: Vida y Relaciones Personales 
-(vida, casa, gente, historia, mujer, familia, mundo, amor, vídeo, película, programa, música, hijo, padre)
-
 Tópico 3: Sociedad y Bienestar 
-(mujeres, personas, salud, vida, argentina, mundo, social, educación, país, sociedad, sistema, sociales, política, forma, nacional)
-
-Tópico 4: Economía y Política Internacional (millones, gobierno, país, argentina, dólares, acuerdo, presidente, Trump, unidos, mercado, ciento, pesos, dólar, banco, economía)
-
-Tópico 5: Política Nacional y Elecciones (
-Macri, Fernández, gobierno, presidente, frente, Alberto, candidato, Cristina, campaña, Argentina, paso, país, elecciones, nacional, Mauricio)
-
-Tópico 6: Problemas Urbanos y Ambientales (ciudad, personas, Aires, Argentina, país, agua, mundo, productos, nacional, san, zona, centro, sistema, metros, forma)
-
-Tópico 7: Deportes y Entretenimiento (equipo, partido, final, Argentina, Boca, copa, fútbol, club, River, mundial, argentino, selección, minutos, jugadores, mundo)
+Tópico 4: Economía y Política Internacional
+Tópico 5: Política Nacional y Elecciones 
+Tópico 6: Problemas Urbanos y Ambientales 
+Tópico 7: Deportes y Entretenimiento
 
 
 ## Alternativa: STM
 
-Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos muy parecidos a los que se logra con LDA
+Todos estos chunks están configurados para que no corran cuando se corre todo el código. 
+Sin embargo, dan como resultado tópicos muy parecidos a los que se logra con LDA
 
+Construimos un DFM
 
 ```{r eval=FALSE, include=FALSE}
 
@@ -551,6 +550,9 @@ noticias_dfm <- word_counts %>%
 noticias_dfm
 
 ```
+
+
+Entrenamos el DFM y establecemos la misma cantidad de tópicos que el LDA: 7 tópicos
 
 ```{r eval=FALSE, include=FALSE}
 # stm_7 <- read_rds('models/stm_7_prev_cont.rds'')
@@ -571,11 +573,21 @@ write_rds(stm_7, 'models/stm_7_prev_cont.rds')
 
 ```
 
+Generamos la matriz beta y theta
+
 ```{r eval=FALSE, include=FALSE}
 
 betas_stm <- tidy(stm_7, matrix='beta')
 
 tetha_stm <- tidy(stm_7, matrix='theta')
+
+```
+
+### Gráfico 5: Principales palabras por tópico en STM
+
+```{r}
+
+#Etiquetamos los tópicos
 
 betas_stm %>%
   group_by(topic) %>%
@@ -583,6 +595,20 @@ betas_stm %>%
   ungroup() %>%
   arrange(topic, -beta) %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
+  select(topic, term, beta) %>%
+  mutate(topic = case_when(
+    topic == 1 ~ "Política/elecciones",
+    topic == 2 ~ "Política exterior",
+    topic == 3 ~ "Economía",
+    topic == 4 ~ "Astrología, salud y ciencia ",
+    topic == 5 ~ "Justicia y seguridad",
+    topic == 6 ~ "Espectáculo",
+    topic == 7 ~ "Deportes",
+    TRUE ~ as.character(topic)
+    ))
+
+#Creamos el gráfico
+betas_stm %>%
   ggplot(aes(beta, term, fill = factor(topic))) +
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales='free_y') +
@@ -590,10 +616,10 @@ betas_stm %>%
   theme_minimal()+
   labs(title = "Principales palabras por Tópico",
        subtitle = "Según modelo STM", 
-       caption = "Gráfico n° 6",
+       caption = "Gráfico n° 5",
        plot.title = element_text(size = 10))
-
 ```
+
 
 ```{r eval=FALSE, include=FALSE}
 
@@ -602,6 +628,8 @@ theta_stm_7 <- tetha_stm %>%
   left_join(metadata)
  
 ```
+
+### Gráfico 6: Principales palabras por tópico según medio en STM
 
 ```{r eval=FALSE, include=FALSE}
 
@@ -619,7 +647,7 @@ theta_stm_7 %>%
         axis.text.x = element_blank()) +  # Quitar la leyenda del eje x
   labs(title = "Principales palabras por Tópico según medio",
        subtitle = "Según modelo STM", 
-       caption = "Gráfico n° 7",  
+       caption = "Gráfico n° 5",  
        plot.title = element_text(size = 14))  # Ajustar el tamaño del título del gráfico
  
 ```
@@ -630,7 +658,7 @@ labelTopics(stm_7)
 
 ```
 
-### Tópicos resultantes
+### Tópicos resultantes STM
     - Tópico 1: Política/elecciones
     - Tópico 2: Política exterior
     - Tópico 3: Economía
