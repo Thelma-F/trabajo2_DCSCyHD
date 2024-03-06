@@ -636,7 +636,7 @@ tetha_stm <- tidy(stm_7, matrix='theta')
 
 ### Gráfico 5: Principales palabras por tópico en STM
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 #Etiquetamos los tópicos
 
@@ -852,17 +852,6 @@ corpus_c_embedding <- corpus_noticias_t5 |>
 
 ```
 
-```{r elimina_objetos}
-
-# Como ya no se utilizan e implican mucho peso, se eliminan
-rm(corpus_noticias_t5, 
-   #noticias, 
-   noticias_topico_5, 
-   #topicos_noticias,
-   embedding, load_embeddings)
-
-```
-
 3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia.
 Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto
 
@@ -877,6 +866,22 @@ noticias_c_embedding <- corpus_c_embedding %>%
   ungroup()
 
 tictoc::toc()
+
+```
+
+```{r spliteo}
+
+## Split
+set.seed(1234)
+noticias_split <- initial_split(noticias_c_embedding, strata = orientacion)
+
+train_embed <- training(noticias_split)
+test_embed <- testing(noticias_split)
+
+#ver el balanceo en train
+table(train_embed$orientacion) #para ver el balanceo)
+
+#Conservador 56.2%,   progresista  43.8%
 
 ```
 
@@ -903,7 +908,7 @@ A continuación, necesitamos preprocesar estos datos para prepararlos para el mo
 
 El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una especificación de los pasos de preprocesamiento que queremos realizar. Estas transformaciones se estiman (o "entrenan") en el conjunto de entrenamiento para que puedan aplicarse de la misma manera en el conjunto de prueba o en nuevos datos durante la predicción, sin fuga de datos. Inicializamos nuestro conjunto de transformaciones de preprocesamiento con la función `recipe()`, utilizando una expresión de fórmula para especificar las variables, nuestra variable de resultado junto con nuestro predictor, junto con el conjunto de datos.
 
-```{r receta_1}
+```{r receta}
 
 # especifico la receta
 noticias_rec_embed <- train_embed |> 
@@ -927,7 +932,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ### Entrenamiento
 
-```{r modelo_1, eval=FALSE, include=FALSE}
+```{r modelo, eval=FALSE, include=FALSE}
  
 # Entreno el modelo
 
@@ -941,7 +946,7 @@ write_rds(tune_params, 'models/tune_params.rds')
 
 ```
 
-```{r modelo_1_carga}
+```{r modelo_carga}
 
 tune_params <- read_rds('models/tune_params.rds')
 
@@ -1008,7 +1013,7 @@ preds_embed <- test_embed %>%
         bind_cols(predict(tree_fit, test_embed, type="class"))
 
 
-print (preds_embed)
+print(preds_embed)
 
 ```
 
@@ -1016,11 +1021,14 @@ print (preds_embed)
 
 ```{r metricas_test}
 
-roc_auc(preds_embed, orientacion, .pred_conservador) %>%
-bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(f_meas(preds_embed, orientacion, .pred_class))
+metricas_1 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
+  bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
+  mutate(modelo = "modelo_1")
+
+metricas_1
 
 ```
 
@@ -1038,15 +1046,7 @@ bind_rows(f_meas(preds_embed, orientacion, .pred_class))
 
 # Se arma el objeto "corpus_noticias_t5", que con el conjunto de noticias que más probablemente pertenezcan al tópico 5 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
 
-#corpus_noticias_t5 <- noticias_topico_5 |>
-  #rename(titulo = document) |> 
-  #left_join(noticias) |>
-  #select(titulo, gamma, id, medio, orientacion, texto) |> 
-  #mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
-  #mutate(orientacion = factor(orientacion,
-                              #levels = c("conservador", "neutro", "progresista")))
 
-#Prueba eliminando casos neutros 
 
 corpus_noticias_t5 <- noticias_topico_5 |>
   rename(titulo = document) |> 
@@ -1055,9 +1055,11 @@ corpus_noticias_t5 <- noticias_topico_5 |>
   mutate(orientacion = gsub("\\+ ", "", orientacion)) |>
   filter(orientacion != "neutro")|> 
   mutate(orientacion = factor(orientacion,
-                              levels = c("conservador", "progresista"))) 
+                              levels = c("conservador", "progresista")))
+                              #levels = c("conservador", "neutro", "progresista")))
+                              #Prueba eliminando casos neutros 
  
-table (corpus_noticias_t5$orientacion)
+table(corpus_noticias_t5$orientacion)
 ```
 
 
@@ -1102,6 +1104,8 @@ corpus_c_embedding <- corpus_noticias_t5 |>
         drop_na()
 
 ```
+
+
 ```{r promedio_x_dimension}
 tictoc::tic()
 noticias_embed <- corpus_c_embedding %>%
@@ -1144,11 +1148,12 @@ rf_spec <- rand_forest(
 
 # especifico la receta
 
-noticias_rec_embed <- 
-  recipe(orientacion ~ ., data = train_embed) %>% 
-  update_role("title_id", new_role = "ID")%>% 
-        step_downsample(orientacion,
-                        under_ratio = 1)
+noticias_rec_embed <- train_embed
+  recipe(orientacion ~ .) %>%
+  step_rm(medio) |> 
+  update_role("title_id", new_role = "ID") %>% 
+  step_downsample(orientacion,
+                  under_ratio = 1)
 
 # especifico el flujo
 wf_embed <- workflow() %>% 
@@ -1162,7 +1167,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 ```
 
 ### Entrenamiento
-```{r}
+```{r eval=FALSE, include=FALSE}
  
 # Entreno el modelo
 
@@ -1193,8 +1198,10 @@ tune_params |>
 
 
 ```{r}
+
 autoplot(tune_params_rf)+
   theme_minimal()
+
 ```
 
 ### Evaluación
@@ -1208,10 +1215,8 @@ show_best(tune_params_rf, "roc_auc")
 
 best_ROC <- select_best(tune_params_rf, "roc_auc")
 
-final_rf <- finalize_model(
-  rf_spec,
-  best_ROC
-)
+final_rf <- finalize_model(rf_spec,
+                           best_ROC)
 
 final_rf
 
@@ -1219,43 +1224,65 @@ final_rf
 ### Evaluación sobre test-set
 
 ```{r}
+
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
   add_recipe(noticias_rec_embed) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
+
 ```
 
 
 ```{r}
-
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
         bind_cols(predict(tree_fit, test_embed, type="prob")) %>%
         bind_cols(predict(tree_fit, test_embed, type="class"))
 
-
-print (preds_embed)
+print(preds_embed)
 
 ```
 
 
-**Embeddings**
 ```{r}
-roc_auc(preds_embed, orientacion, .pred_conservador) %>%
-bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(f_meas(preds_embed, orientacion, .pred_class))
+
+metricas_2 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
+  bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
+  mutate(modelo = "modelo_2")
+
 ```
 
 ## PRUEBA 3	REGRESION LOGISTICA LASSO:
-    - Con exclusión de orientación "medio"
+    - Con exclusión de orientación "neutro"
     - Sin balancear en la receta por orientación 
 
 
 **Curva Roc Final 0.7748538**
+
+
+```{r A CONFIRMAR}
+
+# Se arma el objeto "corpus_noticias_t5", que con el conjunto de noticias que más probablemente pertenezcan al tópico 5 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
+
+corpus_noticias_t5 <- noticias_topico_5 |>
+  rename(titulo = document) |> 
+  left_join(noticias) |>
+  select(titulo, gamma, id, 
+         #medio,
+         orientacion, texto) |> 
+  mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
+  filter(orientacion != "neutro")|> 
+  mutate(orientacion = factor(orientacion,
+                              levels = c("conservador", "progresista"))) 
+                              #levels = c("conservador", "neutro", "progresista")))
+
+table(corpus_noticias_t5$orientacion)
+```
 
 
 ```{r cars}
@@ -1264,8 +1291,12 @@ corpus_Topic5_lasso <- corpus_noticias_t5
 
 # Verificar los cambios
 table(corpus_Topic5_lasso$orientacion)
+
 ```
+
+
 ```{r}
+
 noticias_embed_lasso <- corpus_Topic5_lasso %>%
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) %>%
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -1275,13 +1306,14 @@ noticias_embed_lasso <- corpus_Topic5_lasso %>%
 1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 ```{r}
 
-
 noticias_tidy_lasso <- noticias_embed_lasso %>%
   mutate(title_id = row_number()) %>%
   unnest_tokens(word, texto, 
                 to_lower=FALSE,
-                strip_punct=FALSE) 
+                strip_punct=FALSE)
+
 ```
+
 
 ```{r}
 
@@ -1289,15 +1321,20 @@ noticias_tidy_lasso <- noticias_embed_lasso %>%
 noticias_tidy_lasso <- noticias_tidy_lasso %>%
         left_join(embedding) %>%
         drop_na()
+
 ```
+
 3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una review.
+
 ```{r}
+
 tictoc::tic()
 noticias_embed_lasso <- noticias_tidy_lasso %>%
         group_by(title_id,orientacion) %>%
         summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
         ungroup()
 tictoc::toc()
+
 ```
 
 ```{r}
@@ -1309,7 +1346,7 @@ train_embed_lasso <- training(noticias_split)
 test_embed_lasso <- testing(noticias_split)
 
 #ver el balanceo en train
-table (train_embed_lasso$orientacion) #para ver el balanceo)
+table(train_embed_lasso$orientacion) #para ver el balanceo)
 
 ```
 
@@ -1343,7 +1380,9 @@ embed_folds <- vfold_cv(train_embed_lasso, v = 5)
 
 
 ```
+
 ### Entrenamiento
+
 ```{r}
 # Entreno el modelo
 tictoc::tic()
@@ -1355,24 +1394,34 @@ tune_lasso_embed <- tune_grid(
 )
 tictoc::toc()
 ```
+
 ### Evaluación
 Veamos los dos mejores modelos en términos de ROC:
+
 ```{r}
+
 show_best(tune_lasso_embed, "roc_auc", n=2)
+
 ```
 
 Veamos el mejor modelo dentro de 1 error estándar:
 ```{r}
+
 chosen_auc_embed <- tune_lasso_embed %>%
   select_by_one_std_err(metric = "roc_auc", -penalty)
 
 chosen_auc_embed
+
 ```
+
 ### Entrenamiento final
 Elegimos el mejor modelo...
+
 ```{r}
+
 final_params_lasso_embed <- finalize_workflow(wf_embed, chosen_auc_embed)
 final_params_lasso_embed
+
 ```
 
 Fiteemos el mejor modelo sobre el total del traning set:
@@ -1388,18 +1437,19 @@ preds_embed_lasso <- test_embed_lasso %>%
         bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="class"))
 ```
 
-**Embeddings**
+
 ```{r}
 
 
 # Calcular las métricas de evaluación
-metrics <- roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
+metricas_3 <- roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
   bind_rows(accuracy(preds_embed_lasso, orientacion, .pred_class)) %>%
   bind_rows(precision(preds_embed_lasso, orientacion, .pred_class)) %>%
   bind_rows(recall(preds_embed_lasso, orientacion, .pred_class)) %>%
-  bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class))
+  bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class)) |> 
+  mutate(modelo = "modelo_3")
 
-print (metrics)
+metricas_3
 
 ```
 
@@ -1424,8 +1474,6 @@ corpus_noticias_t5 <- noticias_topico_5 |>
   mutate(orientacion = factor(orientacion,
                             levels = c("conservador", "no conservador")))
 
-
- 
 
 ```
 ### Tokenización y construcción de features mediante el embedding
@@ -1498,13 +1546,6 @@ corpus_c_embedding <- corpus_noticias_t5 |>
 
 ```
 
-```{r elimina_objetos}
-
-# Como ya no se utilizan e implican mucho peso, se eliminan
-rm(corpus_noticias_t5, noticias, noticias_topico_5, topicos_noticias, embedding, load_embeddings)
-
-```
-
 3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia.
 Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio de cada dimensión de la noticia en su conjunto
 
@@ -1533,9 +1574,10 @@ train_embed <- training(noticias_split)
 test_embed <- testing(noticias_split)
 
 #ver el balanceo en train
-table (train_embed$orientacion) #para ver el balanceo)
+table(train_embed$orientacion) #para ver el balanceo)
 
 ```
+
 ### Hiperparámetros
 
 Ahora, hay que generar el modelo de random forest. Esto lo hacemos con la función `rand_forest()`. Los hiperparámetros con los que vamos a jugar acá son:
@@ -1545,29 +1587,28 @@ Ahora, hay que generar el modelo de random forest. Esto lo hacemos con la funci�
 -   `min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
 ```{r}
-rf_spec <- rand_forest(
-  trees = 1000,
-  mtry = tune(),
-  min_n = tune()
-  ) %>%
+rf_spec <- rand_forest(trees = 1000,
+                       mtry = tune(),
+                       min_n = tune()) %>%
   set_mode("classification") %>%
   set_engine("ranger")
 
 ```
+
 A continuación, necesitamos preprocesar estos datos para prepararlos para el modelado; tenemos datos de texto y necesitamos construir características numéricas para el aprendizaje automático a partir de ese texto.
 
 El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una especificación de los pasos de preprocesamiento que queremos realizar. Estas transformaciones se estiman (o "entrenan") en el conjunto de entrenamiento para que puedan aplicarse de la misma manera en el conjunto de prueba o en nuevos datos durante la predicción, sin fuga de datos. Inicializamos nuestro conjunto de transformaciones de preprocesamiento con la función `recipe()`, utilizando una expresión de fórmula para especificar las variables, nuestra variable de resultado junto con nuestro predictor, junto con el conjunto de datos.
 
 ```{r}
 
-
 # especifico la receta
 
-
-noticias_rec_embed <-
-        recipe(orientacion ~ ., data = train_embed) %>%
-        update_role("title_id", new_role = "ID")%>%
-        step_downsample(orientacion, under_ratio = 1) #esto sería para balancear las clases
+noticias_rec_embed <- train_embed |> 
+  recipe(orientacion ~ .) %>%
+  step_rm(medio) |> 
+  update_role("title_id", new_role = "ID") %>%
+  step_downsample(orientacion, 
+                  under_ratio = 1) #esto sería para balancear las clases
 
 
 # especifico el flujo
@@ -1583,7 +1624,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 ```
 
 ### Entrenamiento
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 # Entreno el modelo
 
@@ -1599,7 +1640,7 @@ write_rds(tune_params2, 'models/tune_params2.rds')
 
 ```{r modelo_topicos}
 
-tune_params2 <- read_rds('models/tune_params2.rds')
+tune_params <- read_rds('models/tune_params2.rds')
 
 
 ```
@@ -1615,14 +1656,18 @@ tune_params |>
 
 
 ```{r}
+
 autoplot(tune_params2)+
   theme_minimal()
+
 ```
 
 ### Evaluación
 Veamos los  mejores modelos en términos de ROC:
 ```{r}
+
 show_best(tune_params2, "roc_auc")
+
 ```
 ### Estimación final
 
@@ -1631,10 +1676,8 @@ show_best(tune_params2, "roc_auc")
 
 best_ROC <- select_best(tune_params2, "roc_auc")
 
-final_rf <- finalize_model(
-  rf_spec,
-  best_ROC
-)
+final_rf <- finalize_model(rf_spec,
+                           best_ROC)
 
 final_rf
 
@@ -1642,35 +1685,39 @@ final_rf
 ### Evaluación sobre test-set
 
 ```{r}
+
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
   add_recipe(noticias_rec_embed) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
+
 ```
 
 
 ```{r}
-
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
         bind_cols(predict(tree_fit, test_embed, type="prob")) %>%
         bind_cols(predict(tree_fit, test_embed, type="class"))
 
-
-             
-print (preds_embed)
+print(preds_embed)
 
 ```
 
-**Embeddings**
+
 ```{r}
-roc_auc(preds_embed, orientacion, .pred_conservador) %>%
-bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
-bind_rows(f_meas(preds_embed, orientacion, .pred_class))
+
+metricas_4 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
+  bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
+  mutate(modelo = "modelo_4")
+
+metricas_4
+
 ```
 
 ## PRUEBA 5	REGRESION LOGISTICA LASSO:
@@ -1680,12 +1727,10 @@ bind_rows(f_meas(preds_embed, orientacion, .pred_class))
 
 **Curva Roc Final 0.6673279**
 
-Se replica todo lo anterior 
-
 
 ```{r}
 
-noticias_embed_lasso <-noticias_embed
+noticias_embed_lasso <- noticias_embed
 ## Split
 set.seed(1234)
 noticias_split <- initial_split(noticias_embed_lasso, strata = orientacion)
@@ -1699,7 +1744,6 @@ table (train_embed_lasso$orientacion) #para ver el balanceo)
 ```
 
 ```{r}
-
 
 ## especifico el modelo /CAMBIAR EL MODELO
 lasso_spec <- logistic_reg(
@@ -1730,7 +1774,9 @@ embed_folds <- vfold_cv(train_embed_lasso, v = 5)
 
 
 ```
+
 ### Entrenamiento
+
 ```{r}
 # Entreno el modelo
 tictoc::tic()
@@ -1742,12 +1788,18 @@ tune_lasso_embed <- tune_grid(
 )
 tictoc::toc()
 ```
+
 ### Evaluación
+
 Veamos los dos mejores modelos en términos de ROC:
 ```{r}
+
 show_best(tune_lasso_embed, "roc_auc", n=2)
+
 ```
+
 Veamos el mejor modelo dentro de 1 error estándar:
+
 ```{r}
 chosen_auc_embed <- tune_lasso_embed %>%
   select_by_one_std_err(metric = "roc_auc", -penalty)
@@ -1758,34 +1810,40 @@ chosen_auc_embed
 
 Elegimos el mejor modelo...
 ```{r}
+
 final_params_lasso_embed <- finalize_workflow(wf_embed, chosen_auc_embed)
 final_params_lasso_embed
+
 ```
 Fiteemos el mejor modelo sobre el total del traning set:
 ```{r}
+
 fitted_lasso_embed <- fit(final_params_lasso_embed, train_embed_lasso)
+
 ```
 
 Hagamos su evaluación sobre el test-set
 ```{r}
+
 preds_embed_lasso <- test_embed_lasso %>%
         select(orientacion) %>%
         bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="prob")) %>%
         bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="class"))
+
 ```
 
-**Embeddings**
+
 ```{r}
 
-
 # Calcular las métricas de evaluación
-metrics <- roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
+metricas_5 <- roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
   bind_rows(accuracy(preds_embed_lasso, orientacion, .pred_class)) %>%
   bind_rows(precision(preds_embed_lasso, orientacion, .pred_class)) %>%
   bind_rows(recall(preds_embed_lasso, orientacion, .pred_class)) %>%
-  bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class))
+  bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class)) |> 
+  mutate(modelo = "modelo_5")
 
-print (metrics)
+metricas_5
 
 ```
 
@@ -2152,19 +2210,44 @@ preds_embed |>
 
 ```{r metricas_test}
 
-modelo_6 <- roc_auc(preds_embed, orientacion, c(.pred_conservador, .pred_neutro, .pred_progresista)) %>%
+metricas_6 <- roc_auc(preds_embed, orientacion, c(.pred_conservador, .pred_neutro, .pred_progresista)) %>%
   bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
   bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
   bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
   bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
   mutate(modelo = "modelo_6")
 
+metricas_6
+
 ```
 
-```{r}
+## GRÁFICO COMPARANDO MODELOS
 
-modelo_1 |> 
-  bind_rows()
+```{r elimina objetos}
+
+#objetos_a_no_eliminar <- setdiff(all_objects <- ls(), 
+                                 c("metricas_1", "metricas_2", "metricas_3", 
+                                   "metricas_4", "metricas_5", "metricas_6"))
+
+rm(list = objetos_a_no_eliminar)
+
+```
+
+```{r grafico_metricas_modelos}
+
+metricas_modelos <- metricas_1 |> 
+  bind_rows(metricas_2) |> 
+  bind_rows(metricas_3) |> 
+  bind_rows(metricas_4) |> 
+  bind_rows(metricas_5) |> 
+  bind_rows(metricas_6)
+  
+
+metricas_modelos |> 
+  ggplot(aes(x = .metric, y = .estimate, fill = modelo))+
+  geom_col(position = "dodge")+
+  scale_fill_viridis_d()+
+  theme_minimal()
 
 ```
 
