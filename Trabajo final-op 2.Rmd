@@ -576,7 +576,7 @@ tetha_stm <- tidy(stm_7, matrix='theta')
 ### Gráfico 5: Principales palabras por tópico en STM
 
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 
 grafico5 <- betas_stm %>%
   group_by(topic) %>%
@@ -623,7 +623,7 @@ theta_stm_7 <- tetha_stm %>%
 
 ### Gráfico 6: Principales palabras por tópico según medio en STM /VER SI ESTE TITULO ES CORRECTO
 
-```{r }
+```{r eval=FALSE, include=FALSE}
 
 #REVISAR cOMPLETO, no esta incluido en el word
 
@@ -670,14 +670,6 @@ labelTopics(stm_7)
     - Tópico 7: Deportes
 
 
-```{r elimina_objetos}
-
-# Se eliminan aquellos objetos que no son más útiles a partir de este punto
-
-#rm(corpus_dtm, corpus_noticias, corpus_tf_idf_noticia, modelo_armado, palabras_topicos, top_palabras_topicos)
-
-```
-
 # Consigna 3)
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del diario. Utilizar alguno de los modelos de clasificación vistos a lo largo de al Diplomatura (regresión logística, random forest, etc.). 
@@ -685,7 +677,8 @@ Utilizar como features el “Spanish Billion Word Corpus and Embeddings”, anal
 Generar las visualizaciones y tablas correspondientes para una correcta evaluación del modelo.
 
 ## Armado del corpus
-### Selección de noticias del tópico política/elecciones del modelo LDA
+
+Selección de noticias del tópico política/elecciones del modelo LDA
 
 ```{r noticias_topico_6}
 
@@ -696,69 +689,36 @@ noticias_topico_6 <- topicos_noticias |>
   filter(topic == 6,
          gamma > 0.7)
 
-# Eliminamos lo que ya no es necesario
-#rm(topicos_noticias)
+```
+
+## Elimina objetos previos
+
+```{r elimina_objetos}
+
+# Elimina todos los objetos excepto los necesarios para la consigna 3
+
+# Lista todos los objetos que existen
+todos_los_objetos <- ls()
+
+# Sólo estos son necesarios para la consigna 3
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias")
+
+# Hace la diferencia
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+# Elimina los objetos
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ```
 
-## PRUEBA 1	RANDOM FOREST:
-    - Excluye orientación "neutro" (se eliminan al inicio)
-    - Sin variable “medio” (en la fusión si lo pongo en la receta luego me da un error en el tuneo NO SE POR QUE)
-    - Sin balancear en la receta por orientación (para ver si overfitea menos)	
-**Curva Roc Final:  0.6690901 ** (empeoro en relacion al anterior 0.75)
+## Carga del embedding
 
-```{r corpus_noticias_t6}
-
-# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
-
-corpus_noticias_t6 <- noticias_topico_6 |>
-  rename(titulo = document) |> 
-  left_join(noticias) |>
-  select(titulo, gamma, id, 
-         #medio,
-         orientacion, texto) |> 
-  mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
-  filter(orientacion != "neutro")|> 
-  mutate(orientacion = factor(orientacion,
-                              levels = c("conservador", "progresista"))) 
-                              #levels = c("conservador", "neutro", "progresista")))
-
-table(corpus_noticias_t6$orientacion)
-```
-
-#### Tokenización y construcción de features mediante el embedding
-
-1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
-
-```{r preprocesamiento}
-
-## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
-
-corpus_noticias_t6 <- corpus_noticias_t6 |>
-        # Revisar qué es esa expresión regular
-        mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
-        # Reemplaza cualquier dígito por la cadena "DIGITO"
-        mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
-
-```
-
-
-```{r tokenización}
-
-corpus_noticias_t6 <- corpus_noticias_t6 |> 
-  mutate(title_id = row_number()) |> 
-  # No pasamos a minúscula ni eliminamos la puntuación para que se unan correctamente con el embedding
-  unnest_tokens(word, texto, 
-                to_lower = FALSE,
-                strip_punct = FALSE)
-
-```
-
-Carga del embedding
-Vamos a usar un embedding entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Pueden encontrar los detalles [aquí](https://crscardellino.ar/SBWCE/).
+Vamos a usar un embedding para predecir la orientación del diario en función del texto de la noticia. En particular, éste está entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Más detalles [aquí](https://crscardellino.ar/SBWCE/).
 Primero escribirmos la función que carga el embedding y después la ejecutamos:
 
-```{r}
+```{r carga_embedding}
 
 load_embeddings <- function(path=NULL, type=c("w2v", "ft")){
         if (type=="w2v"){
@@ -785,6 +745,66 @@ embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vect
 ```
 
 
+# PRUEBA 1	RANDOM FOREST:
+    - Excluye orientación "neutro"
+    - Sin variable “medio”
+    - Sin balancear en la receta por orientación
+
+        **Curva Roc Final:  0.6690901 **
+        (empeoro en relacion al anterior 0.75)
+
+```{r corpus_noticias_t6}
+
+# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
+
+corpus_noticias_t6 <- noticias_topico_6 |>
+  rename(titulo = document) |> 
+  left_join(noticias) |>
+  select(titulo, gamma, id, 
+         #medio,
+         orientacion, texto) |> 
+  mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
+  filter(orientacion != "neutro") |> 
+  mutate(orientacion = factor(orientacion,
+                              levels = c("conservador", "progresista"))) 
+                              #levels = c("conservador", "neutro", "progresista")))
+
+table(corpus_noticias_t6$orientacion)
+
+```
+
+## Sobre el corpus
+
+### Tokenización y construcción de features mediante el embedding
+
+Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
+
+```{r preprocesamiento}
+
+## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
+
+corpus_noticias_t6 <- corpus_noticias_t6 |>
+        # Revisar qué es esa expresión regular
+        mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
+        # Reemplaza cualquier dígito por la cadena "DIGITO"
+        mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
+
+```
+
+
+```{r tokenización}
+
+corpus_noticias_t6 <- corpus_noticias_t6 |> 
+  mutate(title_id = row_number()) |> 
+  # No pasamos a minúscula ni eliminamos la puntuación para que se unan correctamente con el embedding
+  unnest_tokens(word, texto, 
+                to_lower = FALSE,
+                strip_punct = FALSE)
+
+```
+
+### Embedding: de palabra a noticia
+
 ```{r union_embedding}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
@@ -794,45 +814,40 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 ```
 
-3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
+Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
 ```{r promedio_x_dimension}
 
-tictoc::tic()
-
 noticias_c_embedding <- corpus_c_embedding %>%
-  # group_by(title_id, medio, orientacion) %>% #a ver como funciona sin medio
   group_by(title_id, orientacion) %>%
   summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
   ungroup()
 
-tictoc::toc()
-
 ```
+
+## Preparación modelo
 
 ```{r spliteo}
 
-## Split
 set.seed(1234)
-noticias_split <- initial_split(noticias_c_embedding, strata = orientacion)
+
+noticias_split <- initial_split(noticias_c_embedding,
+                                strata = orientacion)
 
 train_embed <- training(noticias_split)
 test_embed <- testing(noticias_split)
 
-#ver el balanceo en train
-table(train_embed$orientacion) #para ver el balanceo)
 
-#Conservador 56.2%,   progresista  43.8%
+table(train_embed$orientacion)
 
 ```
 
-### Hiperparámetros
-Ahora, hay que generar el modelo de random forest. Esto lo hacemos con la función `rand_forest()`. Los hiperparámetros a probar son:
--   `trees`: define el número de árboles que se van a establecer
--   `mtry`: cantidad de variables que se van a probar en cada iteración
--   `min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
+Los hiperparámetros a definir son:
+      -`trees`: define el número de árboles que se van a establecer
+      -`mtry`: cantidad de variables que se van a probar en cada iteración
+      -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
-```{r hiperparametros_1}
+```{r hiperparametros}
 
 rf_spec <- rand_forest(trees = 1000,
                        mtry = tune(),
@@ -847,28 +862,31 @@ El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una esp
 
 ```{r receta}
 
-# especifico la receta
+# Especifico la receta
 noticias_rec_embed <- train_embed |> 
   recipe(orientacion ~ .) |> 
   update_role("title_id", new_role = "id")
-  #step_downsample(orientacion, under_ratio = 1) #esto sería para balancear las clases
+  # No balanceamos
+  #step_downsample(orientacion, under_ratio = 1)
 
-# especifico el flujo
+# Especifico el flujo
 wf_embed <- workflow() %>% 
   add_recipe(noticias_rec_embed) %>%
   add_model(rf_spec)
 
 # Seteo de validación cruzada
-set.seed(1234) #ver si tengo que usar la misma semilla que esta arriba
+set.seed(1234)
 
 embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-### Entrenamiento
+## Entrenamiento
 
 ```{r modelo, eval=FALSE, include=FALSE}
- 
+tictoc::tic()
+
+
 # Entreno el modelo
 tune_params <- tune_grid(wf_embed,
                          resamples = embed_folds,
@@ -878,6 +896,8 @@ tune_params <- tune_grid(wf_embed,
 
 write_rds(tune_params, 'models/tune_params.rds')
 
+
+tictoc::toc()
 ```
 
 ```{r modelo_carga}
@@ -887,7 +907,7 @@ tune_params <- read_rds('models/tune_params.rds')
 ```
 
 
-```{r metricas_1}
+```{r metricas}
 
 # Muestra las métricas en una tibble
 tune_params |> 
@@ -904,7 +924,7 @@ tune_params |>
 
 ```
 
-### Evaluación
+## Evaluación
 Veamos los  mejores modelos en términos de ROC:
 
 ```{r}
@@ -913,7 +933,7 @@ show_best(tune_params, "roc_auc")
 
 ```
 
-### Estimación final
+## Estimación final
 
 ```{r}
 
@@ -926,7 +946,7 @@ final_rf
 
 ```
 
-### Evaluación sobre test-set
+## Evaluación sobre test-set
 
 ```{r}
 
@@ -965,12 +985,35 @@ metricas_1
 
 ```
 
-## PPRUEBA 2 RANDOM FOREST:
-    - Excluye orientación "medio" 
+## Elimina objetos previos
+
+```{r elimina_objetos}
+
+# Elimina todos los objetos excepto los necesarios para el siguiente modelo
+
+# Lista todos los objetos que existen
+todos_los_objetos <- ls()
+
+# Sólo estos son necesarios para la consigna 3
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+
+# Hace la diferencia
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+# Elimina los objetos
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
+
+```
+
+
+# PPRUEBA 2 RANDOM FOREST:
+    - Excluye orientación "neutro" 
     - Con variable medio, sin eliminarla.
     - Balanceando en la receta por orientación	
 
-**Curva Roc Final  0.7435088**
+        **Curva Roc Final  0.7435088**
 
 ```{r corpus_noticias_t6}
 
@@ -978,18 +1021,20 @@ metricas_1
 corpus_noticias_t6 <- noticias_topico_6 |>
   rename(titulo = document) |> 
   left_join(noticias) |>
-  select(titulo, gamma, id, medio, orientacion, texto) |> 
+  select(titulo, gamma, id,
+         medio,
+         orientacion, texto) |> 
   mutate(orientacion = gsub("\\+ ", "", orientacion)) |>
   filter(orientacion != "neutro")|> 
   mutate(orientacion = factor(orientacion,
                               levels = c("conservador", "progresista")))
                               #levels = c("conservador", "neutro", "progresista")))
-                              #Prueba eliminando casos neutros 
  
-table(corpus_noticias_t6$orientacion)
+table(corpus_noticias_t6$medio)
+
 ```
 
-### Tokenización y construcción de features mediante el embedding
+## Tokenización y construcción de features mediante el embedding
 1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
 ```{r preprocesamiento}
@@ -1089,7 +1134,8 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-### Entrenamiento
+## Entrenamiento
+
 ```{r eval=FALSE, include=FALSE}
  
 tune_params_rf <- tune_grid(wf_embed,
@@ -1125,12 +1171,14 @@ autoplot(tune_params_rf)+
 
 ```
 
-### Evaluación
+## Evaluación
 Veamos los  mejores modelos en términos de ROC:
+
 ```{r}
 show_best(tune_params_rf, "roc_auc")
 ```
-### Estimación final
+
+## Estimación final
 
 ```{r}
 
@@ -1142,7 +1190,7 @@ final_rf <- finalize_model(rf_spec,
 final_rf
 ```
 
-### Evaluación sobre test-set
+## Evaluación sobre test-set
 
 ```{r}
 
@@ -1178,10 +1226,38 @@ metricas_2 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
 
 ```
 
-## PRUEBA 3	REGRESION LOGISTICA LASSO:
-    - Con exclusión de orientación "neutro"
+
+## Elimina objetos previos
+
+```{r elimina_objetos}
+
+# Elimina todos los objetos excepto los necesarios para el siguiente modelo
+
+# Lista todos los objetos que existen
+todos_los_objetos <- ls()
+
+# Sólo estos son necesarios para la consigna 3
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+
+# Hace la diferencia
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+# Elimina los objetos
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
+
+```
+
+
+
+
+# PRUEBA 3	REGRESION LOGISTICA LASSO:
+    - Excluye orientación "neutro"
     - Sin balancear en la receta por orientación 
-**Curva Roc Final 0.6206213 (Empeora antes era de 0.77)
+
+      **Curva Roc Final 0.6206213**
+      (empeora antes era de 0.77)
 
 
 ```{r A CONFIRMAR}
@@ -1201,10 +1277,12 @@ corpus_noticias_t6 <- noticias_topico_6 |>
                               #levels = c("conservador", "neutro", "progresista")))
 
 table(corpus_noticias_t6$orientacion)
+
 ```
 
 
 ```{r cars}
+
 corpus_Topic6_lasso <- corpus_noticias_t6 
 # Verificar los cambios
 table(corpus_Topic6_lasso$orientacion)
@@ -1220,7 +1298,8 @@ noticias_embed_lasso <- corpus_Topic6_lasso %>%
 
 ```
 
-1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
+1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
+
 ```{r}
 
 noticias_tidy_lasso <- noticias_embed_lasso %>%
@@ -1268,22 +1347,21 @@ table(train_embed_lasso$orientacion) #para ver el balanceo)
 ```
 
 ```{r}
-lasso_spec <- logistic_reg(
-        penalty = tune(),
-        mixture = 1) %>%
-        set_mode("classification") %>%
-        set_engine("glmnet")
+lasso_spec <- logistic_reg(penalty = tune(),
+                           mixture = 1) %>%
+  set_mode("classification") %>%
+  set_engine("glmnet")
 
 
 # especifico la receta
-noticias_rec_embed_lasso <-
-  recipe(orientacion ~ ., data = train_embed_lasso) %>%
+noticias_rec_embed_lasso <- train_embed_lasso |> 
+  recipe(orientacion ~ .) %>%
   update_role("title_id", new_role = "ID") 
 
 # especifico el flujo
 wf_embed <- workflow() %>% 
-        add_recipe(noticias_rec_embed_lasso) %>%
-        add_model(lasso_spec)
+  add_recipe(noticias_rec_embed_lasso) %>%
+  add_model(lasso_spec)
 
 # espefico la grilla
 grid_lasso <- grid_regular(penalty(), levels = 30)
@@ -1295,7 +1373,7 @@ embed_folds <- vfold_cv(train_embed_lasso, v = 5)
 
 ```
 
-### Entrenamiento
+## Entrenamiento
 
 ```{r}
 # Entreno el modelo
@@ -1309,7 +1387,7 @@ tune_lasso_embed <- tune_grid(
 tictoc::toc()
 ```
 
-### Evaluación
+## Evaluación
 Veamos los dos mejores modelos en términos de ROC:
 
 ```{r}
@@ -1328,7 +1406,7 @@ chosen_auc_embed
 
 ```
 
-### Entrenamiento final
+## Entrenamiento final
 Elegimos el mejor modelo.
 
 ```{r}
@@ -1366,11 +1444,38 @@ metricas_3
 
 ```
 
-`
-## PRUEBA 4	RANDOM FOREST:
-    - Corpus con variable Orientación dicotómica conservador vs no conservador (incluye neutro y progresista)
+
+## Elimina objetos previos
+
+```{r elimina_objetos}
+
+# Elimina todos los objetos excepto los necesarios para el siguiente modelo
+
+# Lista todos los objetos que existen
+todos_los_objetos <- ls()
+
+# Sólo estos son necesarios para la consigna 3
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+
+# Hace la diferencia
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+# Elimina los objetos
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
+
+```
+
+
+
+
+
+# PRUEBA 4	RANDOM FOREST:
+    - Orientación dicotómica conservador vs no conservador (incluye neutro y progresista)
     - Balanceando en la receta por orientación	
-**Curva Roc Final 0.9782245**
+
+        **Curva Roc Final 0.9782245**
 
 ```{r corpus_noticias_t6}
 
@@ -1379,15 +1484,20 @@ metricas_3
 corpus_noticias_t6 <- noticias_topico_6 |>
   rename(titulo = document) |> 
   left_join(noticias) |>
-  select(titulo, gamma, id, medio, orientacion, texto) |> 
-  mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
-  mutate(orientacion = ifelse(orientacion %in% c('progresista', 'neutro'), 'no conservador', 'conservador')) |>  # Se agregó el operador |> aquí
+  select(titulo, gamma, id,
+         medio,
+         orientacion, texto) |> 
+  mutate(orientacion = gsub("\\+ ", "", orientacion)) |>
+  # filter(orientacion != "neutro") |> 
+  mutate(orientacion = ifelse(orientacion %in% c('progresista', 'neutro'), 'no conservador', 'conservador')) |>
   mutate(orientacion = factor(orientacion,
                             levels = c("conservador", "no conservador")))
 
+table(corpus_noticias_t6$medio)
 
 ```
-### Tokenización y construcción de features mediante el embedding
+
+## Tokenización y construcción de features mediante el embedding
 
 1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
@@ -1415,32 +1525,15 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ```
 
-Carga del embedding. Vamos a usar un embedding entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Pueden encontrar los detalles [aquí](https://crscardellino.ar/SBWCE/).
-
-```{r}
-load_embeddings <- function(path=NULL, type=c("w2v", "ft")){
-        if (type=="w2v"){
-                embedding <- word2vec::read.wordvectors(path, 
-                                                        type = "bin", 
-                                                        normalize = TRUE) %>%
-                        as_tibble(rownames="word")
-        }
-        else if (type=="ft"){
-                model <- fastTextR::ft_load(path)
-                words <- fastTextR::ft_words(model)
-                embedding <- fastTextR::ft_word_vectors(model,
-                                                        words) %>%
-                        as_tibble(rownames="word")
-        }
-        
-        return(embedding)
-}
 
 
-embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vectors.bin",
-                             type = "w2v")
 
-```
+
+
+
+
+
+
 
 2. Left-join de la tabla tokenizada de cada noticia con el embedding. De esta forma, cada palabra va a estar representada por un vector de 300 dimensiones, que se corresponde con un vector del embedding pre-entrenado.
 
@@ -1483,7 +1576,7 @@ table(train_embed$orientacion)
 
 ```
 
-### Hiperparámetros
+## Hiperparámetros
 
 ```{r}
 rf_spec <- rand_forest(trees = 1000,
@@ -1518,7 +1611,8 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-### Entrenamiento
+## Entrenamiento
+
 ```{r eval=FALSE, include=FALSE}
 
 # Entreno el modelo
@@ -1557,14 +1651,15 @@ autoplot(tune_params2)+
 
 ```
 
-### Evaluación
+## Evaluación
 Veamos los  mejores modelos en términos de ROC:
 ```{r}
 
 show_best(tune_params2, "roc_auc")
 
 ```
-### Estimación final
+
+## Estimación final
 
 
 ```{r}
@@ -1577,7 +1672,8 @@ final_rf <- finalize_model(rf_spec,
 final_rf
 
 ```
-### Evaluación sobre test-set
+
+## Evaluación sobre test-set
 
 ```{r}
 
@@ -1615,10 +1711,37 @@ metricas_4
 
 ```
 
-## PRUEBA 5	REGRESION LOGISTICA LASSO:
+## Elimina objetos previos
+
+```{r elimina_objetos}
+
+# Elimina todos los objetos excepto los necesarios para el siguiente modelo
+
+# Lista todos los objetos que existen
+todos_los_objetos <- ls()
+
+# Sólo estos son necesarios para la consigna 3
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+
+# Hace la diferencia
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+# Elimina los objetos
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
+
+```
+
+
+
+
+
+# PRUEBA 5	REGRESION LOGISTICA LASSO:
     - con variable Orientación dicotómica conservador vs no conservador (incluye neutro y progresista)
     - Balanceando en la receta por orientación	
-**Curva Roc Final 0.6673279**
+
+        **Curva Roc Final 0.6673279**
 
 
 ```{r}
@@ -1668,7 +1791,7 @@ embed_folds <- vfold_cv(train_embed_lasso, v = 5)
 
 ```
 
-### Entrenamiento
+## Entrenamiento
 
 ```{r}
 # Entreno el modelo
@@ -1682,7 +1805,7 @@ tune_lasso_embed <- tune_grid(
 tictoc::toc()
 ```
 
-### Evaluación
+## Evaluación
 
 Veamos los dos mejores modelos en términos de ROC:
 ```{r}
@@ -1740,13 +1863,36 @@ metricas_5
 
 ```
 
+## Elimina objetos previos
 
-## PRUEBA 6	RANDOM FOREST:
+```{r elimina_objetos}
+
+# Elimina todos los objetos excepto los necesarios para el siguiente modelo
+
+# Lista todos los objetos que existen
+todos_los_objetos <- ls()
+
+# Sólo estos son necesarios para la consigna 3
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+
+# Hace la diferencia
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+# Elimina los objetos
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
+
+```
+
+
+
+# PRUEBA 6 RANDOM FOREST:
     - Incluye orientación "neutro" (se eliminan al inicio)
     - Con variable “medio”
     - Balanceando en la receta por orientación	
 
-**Curva Roc Final:  _._______**
+        **Curva Roc Final:  _._______**
 
 
 ```{r corpus_noticias_t6}
@@ -1759,17 +1905,17 @@ corpus_noticias_t6 <- noticias_topico_6 |>
   select(titulo, gamma, id, 
          medio,
          orientacion, texto) |> 
-  mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
+  mutate(orientacion = gsub("\\+ ", "", orientacion)) |>
+  # filter(orientacion != "neutro") |> 
   mutate(orientacion = factor(orientacion,
                               #levels = c("conservador", "progresista"))) 
                               levels = c("conservador", "neutro", "progresista")))
 
-corpus_noticias_t6 |> 
-  count(medio) |> 
-  print()
+table(corpus_noticias_t6$medio)
+
 ```
 
-#### Preprocesamiento: tokenización y embedding
+## Preprocesamiento: tokenización y embedding
 1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
 ```{r preprocesamiento}
@@ -1795,33 +1941,13 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 ```
 
 
-Carga del embedding. 
-
-```{r}
-
-load_embeddings <- function(path=NULL, type=c("w2v", "ft")){
-        if (type=="w2v"){
-                embedding <- word2vec::read.wordvectors(path, 
-                                                        type = "bin", 
-                                                        normalize = TRUE) %>%
-                        as_tibble(rownames="word")
-        }
-        else if (type=="ft"){
-                model <- fastTextR::ft_load(path)
-                words <- fastTextR::ft_words(model)
-                embedding <- fastTextR::ft_word_vectors(model,
-                                                        words) %>%
-                        as_tibble(rownames="word")
-        }
-        
-        return(embedding)
-}
 
 
-embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vectors.bin",
-                             type = "w2v")
 
-```
+
+
+
+
 
 
 ```{r union_embedding}
@@ -1834,16 +1960,6 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 ```
 
 
-```{r elimina_objetos}
-
-# Como ya no se utilizan e implican mucho peso, se eliminan
-rm(corpus_noticias_t6, 
-   #noticias, 
-   noticias_topico_6, 
-   #topicos_noticias,
-   embedding, load_embeddings)
-
-```
 
 
 ```{r promedio_x_dimension}
@@ -1937,7 +2053,7 @@ table(train_embed$orientacion)
 rm(noticias_split)
 ```
 
-### Hiperparámetros: tuneo y validación cruzada
+## Hiperparámetros: tuneo y validación cruzada
 
 ```{r hiperparametros_a_tunear}
 
@@ -1979,7 +2095,7 @@ wf_embed <- workflow() %>%
 ```
 
 
-### Entrenamiento
+## Entrenamiento
 
 ```{r modelo, eval=FALSE, include=FALSE}
  
@@ -2024,7 +2140,7 @@ tune_params |>
 
 ```
 
-### Evaluación hiperparámetros
+## Evaluación hiperparámetros
 Veamos los  mejores modelos en términos de ROC:
 
 ```{r}
@@ -2033,7 +2149,7 @@ show_best(tune_params, "roc_auc")
 
 ```
 
-### Estimación final
+## Estimación final
 
 ```{r}
 
@@ -2050,7 +2166,7 @@ rm(best_ROC)
 
 ```
 
-### Evaluación sobre test-set
+## Evaluación sobre test-set
 
 ```{r}
 
@@ -2091,17 +2207,22 @@ metricas_6
 
 ```
 
-## GRÁFICO COMPARANDO MODELOS
 
-```{r elimina objetos}
+# GRÁFICO COMPARANDO MODELOS
+
+```{r elimina_objetos}
 
 # Elimina todos los objetos excepto las métricas. A propósito le dejé el "#", así se genera un error si uno pone "run all" y así uno decide, en el momento, si quiere eliminar todos los objetos y hacer las métricas o modificar algo de alguno de los objetos anteriores
 
-#objetos_a_no_eliminar <- setdiff(all_objects <- ls(), 
-                                 c("metricas_1", "metricas_2", "metricas_3", 
-                                   "metricas_4", "metricas_5", "metricas_6")
+#todos_los_objetos <- ls()
 
-rm(list = objetos_a_no_eliminar)
+objetos_a_no_eliminar <- c("metricas_1", "metricas_2", "metricas_3","metricas_4", "metricas_5", "metricas_6")
+
+objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
+
+rm(list = objetos_a_eliminar)
+
+rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ```
 
