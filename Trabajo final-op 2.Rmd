@@ -2174,6 +2174,8 @@ metricas_6
 
 ```{r elimina objetos}
 
+# Elimina todos los objetos excepto las métricas. A propósito le dejé el "#", así se genera un error si uno pone "run all" y así uno decide, en el momento, si quiere eliminar todos los objetos y hacer las métricas o modificar algo de alguno de los objetos anteriores
+
 #objetos_a_no_eliminar <- setdiff(all_objects <- ls(), 
                                  c("metricas_1", "metricas_2", "metricas_3", 
                                    "metricas_4", "metricas_5", "metricas_6"))
