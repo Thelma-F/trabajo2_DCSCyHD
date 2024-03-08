@@ -17,13 +17,14 @@ Trabajo Final
 library(tidyverse)
 library(tidytext)
 library(tidymodels)
-#library(doParallel)
-# library(topicmodels)
 library(stm)
 library(knitr)
+library(themis)
+# library(doParallel)
+# library(topicmodels)
 # library(tictoc)
 # library(reshape2)
-# library(themis)
+
 ```
 ## Se carga el dataset de noticias provisto
 
@@ -750,12 +751,16 @@ embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vect
     - Sin variable “medio”
     - Sin balancear en la receta por orientación
 
-        **Curva Roc Final:  0.6690901 **
-        (empeoro en relacion al anterior 0.75)
+        **Curva Roc sobre train:  0.7544600 **
+        **Curva Roc sobre test:  0.6693104 **
+
+## Sobre el corpus
+
+### Tokenización y construcción de features mediante el embedding
 
 ```{r corpus_noticias_t6}
 
-# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
+# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto y la orientación del medio del cual sale la noticia
 
 corpus_noticias_t6 <- noticias_topico_6 |>
   rename(titulo = document) |> 
@@ -772,10 +777,6 @@ corpus_noticias_t6 <- noticias_topico_6 |>
 table(corpus_noticias_t6$orientacion)
 
 ```
-
-## Sobre el corpus
-
-### Tokenización y construcción de features mediante el embedding
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
@@ -827,6 +828,8 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ## Preparación modelo
 
+### Spliteo
+
 ```{r spliteo}
 
 set.seed(1234)
@@ -842,6 +845,25 @@ table(train_embed$orientacion)
 
 ```
 
+### Receta
+
+```{r receta}
+
+# Especifico la receta
+receta <- train_embed |> 
+  recipe(orientacion ~ .) |> 
+  update_role("title_id", new_role = "id")
+  # No balanceamos
+  #step_downsample(orientacion, under_ratio = 1)
+
+# La agrego al workflow
+wf <- workflow() %>%
+  add_recipe(receta)
+
+```
+
+### Tuneo
+
 Los hiperparámetros a definir son:
       -`trees`: define el número de árboles que se van a establecer
       -`mtry`: cantidad de variables que se van a probar en cada iteración
@@ -849,117 +871,125 @@ Los hiperparámetros a definir son:
 
 ```{r hiperparametros}
 
-rf_spec <- rand_forest(trees = 1000,
-                       mtry = tune(),
-                       min_n = tune()) %>%
+# Establezco el modelo a tunear
+modelo_a_tunear <- rand_forest(trees = 1000,
+                               mtry = tune(),
+                               min_n = tune()) %>%
   set_mode("classification") %>%
   set_engine("ranger")
 
+# Lo agrego al workflow
+wf <- wf |> 
+  add_model(modelo_a_tunear)
+
 ```
 
-A continuación, necesitamos preprocesar estos datos para prepararlos para el modelado; tenemos datos de texto y necesitamos construir características numéricas para el aprendizaje automático a partir de ese texto.
-El paquete `recipes`, que forma parte de `tidymodels`, nos permite crear una especificación de los pasos de preprocesamiento que queremos realizar. Estas transformaciones se estiman (o "entrenan") en el conjunto de entrenamiento para que puedan aplicarse de la misma manera en el conjunto de prueba o en nuevos datos durante la predicción, sin fuga de datos. Inicializamos nuestro conjunto de transformaciones de preprocesamiento con la función `recipe()`, utilizando una expresión de fórmula para especificar las variables, nuestra variable de resultado junto con nuestro predictor, junto con el conjunto de datos.
+```{r cross_validation}
 
-```{r receta}
-
-# Especifico la receta
-noticias_rec_embed <- train_embed |> 
-  recipe(orientacion ~ .) |> 
-  update_role("title_id", new_role = "id")
-  # No balanceamos
-  #step_downsample(orientacion, under_ratio = 1)
-
-# Especifico el flujo
-wf_embed <- workflow() %>% 
-  add_recipe(noticias_rec_embed) %>%
-  add_model(rf_spec)
-
-# Seteo de validación cruzada
 set.seed(1234)
 
+# Cross validation
 embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-## Entrenamiento
-
-```{r modelo, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
 tictoc::tic()
 
-
-# Entreno el modelo
-tune_params <- tune_grid(wf_embed,
-                         resamples = embed_folds,
-                         grid = 30,
-                         metrics = metric_set(precision, recall,
+# Entreno el modelo con distintas combinaciones de hiperparámetros
+a_tunear_1 <- tune_grid(object = wf,
+                        resamples = embed_folds,
+                        grid = 30,
+                        metrics = metric_set(precision, recall,
                                               roc_auc, f_meas))
 
-write_rds(tune_params, 'models/tune_params.rds')
-
+write_rds(a_tunear_1, 'models/a_tunear_1.rds')
 
 tictoc::toc()
-```
-
-```{r modelo_carga}
-
-tune_params <- read_rds('models/tune_params.rds')
 
 ```
 
+```{r combinaciones_carga}
+
+a_tunear_1 <- read_rds('models/a_tunear_1.rds')
+
+```
+
+
+## Métricas y elección hiperparámetros
 
 ```{r metricas}
 
 # Muestra las métricas en una tibble
-tune_params |> 
+a_tunear_1 |> 
   collect_metrics() |> 
   print()
 
 ```
 
-```{r}
+```{r autplot}
 
-tune_params |> 
+a_tunear_1 |> 
   autoplot() +
   theme_minimal()
 
 ```
 
-## Evaluación
-Veamos los  mejores modelos en términos de ROC:
+```{r mejor_ROC}
 
-```{r}
-
-show_best(tune_params, "roc_auc")
+# Mostramos los hiperparámetros que dan la mejor curva ROC
+show_best(a_tunear_1, "roc_auc")
 
 ```
 
-## Estimación final
+Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
 
-```{r}
+```{r parametros_finales}
 
-best_ROC <- select_best(tune_params, "roc_auc")
+#best_ROC <- show_best(a_tunear_1, "roc_auc") |> 
+#  filter(mtry == 118 &
+#         min_n == 14)
 
-final_rf <- finalize_model(rf_spec,
+best_ROC <- select_best(a_tunear_1,
+                        "roc_auc")
+
+
+# Finalizamos el modelo con los hiperparámetros que dan la mejor curva ROC
+final_rf <- finalize_model(modelo_a_tunear,
                            best_ROC)
 
+# Modelo final
 final_rf
 
 ```
 
-## Evaluación sobre test-set
+## Entrenamiento modelo final
 
-```{r}
+```{r fit_final}
 
-# Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
+# Actualizamos al modelo final
+fit_final <- wf |> 
+  update_model(final_rf) |>
+  # Fiteamos a los datos de entrenamiento
+  fit(train_embed)
+
+```
+
+
+## Evaluación sobre test
+
+```{r fit_en_test}
+
+# Creamos un nuevo flujo de trabajo, agregamos la receta y el modelo, y ajustamos a los datos de entrenamiento
 tree_fit <- workflow() %>%
-  add_recipe(noticias_rec_embed) %>%
+  add_recipe(receta) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
 
 ```
 
 
-```{r}
+```{r prediccion}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -995,7 +1025,7 @@ metricas_1
 todos_los_objetos <- ls()
 
 # Sólo estos son necesarios para la consigna 3
-objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding", "metricas_1")
 
 # Hace la diferencia
 objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
@@ -1010,13 +1040,24 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 # PPRUEBA 2 RANDOM FOREST:
     - Excluye orientación "neutro" 
-    - Con variable medio, sin eliminarla.
-    - Balanceando en la receta por orientación	
+    - Con variable medio
+    - Balanceando en la receta por medio	
 
-        **Curva Roc Final  0.7435088**
+        **Curva Roc sobre train: 0.7444554**
+        
+        **Curva Roc sobre test: 0.7472527** 15	2
+                              **0.7490110** 118	14
+                              **0.7384615** 30	12
+                              **0.7428571** 65	22
+                              **0.7498901** 41	20
+
+## Sobre el corpus
+
+### Tokenización y construcción de features mediante el embedding
 
 ```{r corpus_noticias_t6}
 
+# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
 
 corpus_noticias_t6 <- noticias_topico_6 |>
   rename(titulo = document) |> 
@@ -1034,8 +1075,7 @@ table(corpus_noticias_t6$medio)
 
 ```
 
-## Tokenización y construcción de features mediante el embedding
-1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
+Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 
 ```{r preprocesamiento}
 
@@ -1060,9 +1100,8 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
                 strip_punct = FALSE)
 
 ```
-Carga del embedding (esta en el codigo anterior)
 
-2. Left-join de la tabla tokenizada de cada noticia con el embedding. De esta forma, cada palabra va a estar representada por un vector de 300 dimensiones, que se corresponde con un vector del embedding pre-entrenado.
+### Embedding: de palabra a noticia
 
 ```{r union_embedding}
 
@@ -1073,137 +1112,187 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 ```
 
+Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
 ```{r promedio_x_dimension}
-tictoc::tic()
-noticias_embed <- corpus_c_embedding %>%
+
+noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, medio, orientacion) %>% 
-  group_by(title_id, orientacion) %>%
   summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
   ungroup()
-tictoc::toc()
 
 ```
 
-```{r}
 
-## Split
+## Preparación modelo
+
+### Spliteo
+
+```{r spliteo}
+
 set.seed(1234)
-noticias_split <- initial_split(noticias_embed, strata = orientacion)
+
+noticias_split <- initial_split(noticias_c_embedding, 
+                                strata = medio)
 
 train_embed <- training(noticias_split)
 test_embed <- testing(noticias_split)
 
-#ver el balanceo en train
-table (train_embed$orientacion) #para ver el balanceo)
 
-#Conservador 56.2%,   progresista  43.8%
+table(train_embed$medio)
 
 ```
 
-```{r}
-rf_spec <- rand_forest(
-  trees = 1000,
-  mtry = tune(),
-  min_n = tune()
-  ) %>%
-  set_mode("classification") %>%
-  set_engine("ranger")
+### Receta
 
-```
+```{r receta}
 
-```{r}
-
-# especifico la receta
-
-noticias_rec_embed <- train_embed
+# Especifico la receta
+receta <- train_embed |> 
   recipe(orientacion ~ .) %>%
   step_rm(medio) |> 
   update_role("title_id", new_role = "ID") %>% 
   step_downsample(orientacion,
                   under_ratio = 1)
+  
 
-# especifico el flujo
-wf_embed <- workflow() %>% 
-        add_recipe(noticias_rec_embed) %>%
-        add_model(rf_spec)
+# La agrego al workflow
+wf <- workflow() %>%
+  add_recipe(receta)
 
-# Seteo de validación cruzada
-set.seed(1234)#ver si tengo que usar la misma semila que esta arriba
+```
+
+
+### Tuneo
+
+Los hiperparámetros a definir son:
+      -`trees`: define el número de árboles que se van a establecer
+      -`mtry`: cantidad de variables que se van a probar en cada iteración
+      -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
+
+```{r hiperparametros}
+
+# Establezco el modelo a tunear
+modelo_a_tunear <- rand_forest(trees = 1000,
+                               mtry = tune(),
+                               min_n = tune()) %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+
+
+# Lo agrego al workflow
+wf <- wf |> 
+  add_model(modelo_a_tunear)
+
+```
+
+```{r cross_validation}
+
+set.seed(1234)
+
+# Cross validation
 embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-## Entrenamiento
+```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
 
-```{r eval=FALSE, include=FALSE}
- 
-tune_params_rf <- tune_grid(wf_embed,
-                         resamples = embed_folds,
-                         grid = 30,
-                         metrics = metric_set(precision, recall,
-                                              roc_auc, f_meas))
+tictoc::tic()
 
-write_rds(tune_params_rf, 'models/tune_params_rf.rds')
+# Entreno el modelo con distintas combinaciones de hiperparámetros
+a_tunear_2 <- tune_grid(wf,
+                        resamples = embed_folds,
+                        grid = 30,
+                        metrics = metric_set(precision, recall,
+                                             roc_auc, f_meas))
 
-```
+write_rds(a_tunear_2, 'models/a_tunear_2.rds')
 
-```{r modelo_topicos}
-
-tune_params_rf <- read_rds('models/tune_params_rf.rds')
+tictoc::toc()
 
 ```
 
-```{r}
+```{r combinaciones_carga}
+
+a_tunear_2 <- read_rds('models/a_tunear_2.rds')
+
+```
+
+
+## Métricas y elección hiperparámetros
+
+```{r metricas}
 
 # Muestra las métricas en una tibble
-tune_params |> 
+a_tunear_2 |> 
   collect_metrics() |> 
   print()
 
 ```
 
+```{r autplot}
 
-```{r}
-
-autoplot(tune_params_rf)+
+a_tunear_2 |> 
+  autoplot() +
   theme_minimal()
 
 ```
 
-## Evaluación
-Veamos los  mejores modelos en términos de ROC:
+```{r mejor_ROC}
 
-```{r}
-show_best(tune_params_rf, "roc_auc")
+# Mostramos los hiperparámetros que dan la mejor curva ROC
+show_best(a_tunear_2, "roc_auc")
+
 ```
 
-## Estimación final
+Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
 
-```{r}
+```{r parametros_finales}
 
-best_ROC <- select_best(tune_params_rf, "roc_auc")
+# best_ROC <- show_best(a_tunear_2, "roc_auc") |> 
+#  filter(mtry == 118 &
+#         min_n == 14)
 
-final_rf <- finalize_model(rf_spec,
+best_ROC <- select_best(a_tunear_2,
+                        "roc_auc")
+
+
+# Finalizamos el modelo con los hiperparámetros que dan la mejor curva ROC
+final_rf <- finalize_model(modelo_a_tunear,
                            best_ROC)
 
+# Modelo final
 final_rf
+
 ```
 
-## Evaluación sobre test-set
+## Entrenamiento modelo final
 
-```{r}
+```{r fit_final}
+
+# Actualizamos al modelo final
+fit_final <- wf |> 
+  update_model(final_rf) |>
+  # Fiteamos a los datos de entrenamiento
+  fit(train_embed)
+
+```
+
+
+## Evaluación sobre test
+
+```{r fit_en_test}
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
-  add_recipe(noticias_rec_embed) %>%
+  add_recipe(receta) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
 
 ```
 
 
-```{r}
+```{r prediccion}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -1215,7 +1304,7 @@ print(preds_embed)
 ```
 
 
-```{r}
+```{r metricas_test}
 
 metricas_2 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
   bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
@@ -1223,6 +1312,8 @@ metricas_2 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
   bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
   bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
   mutate(modelo = "modelo_2")
+
+metricas_2
 
 ```
 
@@ -1237,7 +1328,7 @@ metricas_2 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
 todos_los_objetos <- ls()
 
 # Sólo estos son necesarios para la consigna 3
-objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding", "metricas_1", "metricas_2")
 
 # Hace la diferencia
 objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
@@ -1256,13 +1347,17 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
     - Excluye orientación "neutro"
     - Sin balancear en la receta por orientación 
 
-      **Curva Roc Final 0.6206213**
-      (empeora antes era de 0.77)
+        **Curva Roc sobre train:  0.7066328 **
+        **Curva Roc sobre test:  0.6992730 **
 
 
-```{r A CONFIRMAR}
+## Sobre el corpus
 
-# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico  (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
+### Tokenización y construcción de features mediante el embedding
+
+```{r corpus_noticias_t6}
+
+# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto y la orientación del medio del cual sale la noticia
 
 corpus_noticias_t6 <- noticias_topico_6 |>
   rename(titulo = document) |> 
@@ -1271,7 +1366,7 @@ corpus_noticias_t6 <- noticias_topico_6 |>
          #medio,
          orientacion, texto) |> 
   mutate(orientacion = gsub("\\+ ", "", orientacion)) |> 
-  filter(orientacion != "neutro")|> 
+  filter(orientacion != "neutro") |> 
   mutate(orientacion = factor(orientacion,
                               levels = c("conservador", "progresista"))) 
                               #levels = c("conservador", "neutro", "progresista")))
@@ -1280,164 +1375,250 @@ table(corpus_noticias_t6$orientacion)
 
 ```
 
+Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
-```{r cars}
+```{r preprocesamiento}
 
-corpus_Topic6_lasso <- corpus_noticias_t6 
-# Verificar los cambios
-table(corpus_Topic6_lasso$orientacion)
+## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
 
-```
-
-
-```{r}
-
-noticias_embed_lasso <- corpus_Topic6_lasso %>%
+corpus_noticias_t6 <- corpus_noticias_t6 %>%
+        # Revisar qué es esa expresión regular
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) %>%
+        # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
 
 ```
 
-1. Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
+```{r tokenización}
 
-```{r}
-
-noticias_tidy_lasso <- noticias_embed_lasso %>%
-  mutate(title_id = row_number()) %>%
+corpus_noticias_t6 <- corpus_noticias_t6 |> 
+  mutate(title_id = row_number()) |> 
+  # No pasamos a minúscula ni eliminamos la puntuación para que se unan correctamente con el embedding
   unnest_tokens(word, texto, 
-                to_lower=FALSE,
-                strip_punct=FALSE)
+                to_lower = FALSE,
+                strip_punct = FALSE)
 
 ```
 
+### Embedding: de palabra a noticia
 
-```{r}
+```{r union_embedding}
 
-#
-noticias_tidy_lasso <- noticias_tidy_lasso %>%
-        left_join(embedding) %>%
+# Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
+corpus_c_embedding <- corpus_noticias_t6 |>
+        left_join(embedding) |>
         drop_na()
 
 ```
 
-3. Por último, agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una review.
+Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r}
+```{r promedio_x_dimension}
 
-tictoc::tic()
-noticias_embed_lasso <- noticias_tidy_lasso %>%
-        group_by(title_id,orientacion) %>%
-        summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
-        ungroup()
-tictoc::toc()
+noticias_c_embedding <- corpus_c_embedding %>%
+  group_by(title_id, orientacion) %>% 
+  summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
+  ungroup()
 
 ```
 
-```{r}
-## Split
+## Preparación modelo
+
+### Spliteo
+
+```{r spliteo}
+
 set.seed(1234)
-noticias_split <- initial_split(noticias_embed_lasso, strata = orientacion)
 
-train_embed_lasso <- training(noticias_split)
-test_embed_lasso <- testing(noticias_split)
+noticias_split <- initial_split(noticias_c_embedding, 
+                                strata = orientacion)
 
-#ver el balanceo en train
-table(train_embed_lasso$orientacion) #para ver el balanceo)
+train_embed <- training(noticias_split)
+test_embed <- testing(noticias_split)
+
+
+table(train_embed$orientacion)
 
 ```
 
-```{r}
-lasso_spec <- logistic_reg(penalty = tune(),
-                           mixture = 1) %>%
+
+### Receta
+
+```{r receta}
+
+# Especifico la receta
+receta_lasso <- train_embed |> 
+  recipe(orientacion ~ .) %>%
+  update_role("title_id", new_role = "ID")
+  #step_downsample(orientacion,
+  #                under_ratio = 1)
+  
+
+# La agrego al workflow
+wf <- workflow() %>%
+  add_recipe(receta_lasso)
+
+```
+
+
+### Tuneo
+
+Los hiperparámetros a definir son:
+      -`trees`: define el número de árboles que se van a establecer
+      -`mtry`: cantidad de variables que se van a probar en cada iteración
+      -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
+
+```{r hiperparametros}
+
+# Establezco el modelo a tunear
+modelo_a_tunear <- logistic_reg(penalty = tune(),
+                                mixture = 1) %>%
   set_mode("classification") %>%
   set_engine("glmnet")
 
 
-# especifico la receta
-noticias_rec_embed_lasso <- train_embed_lasso |> 
-  recipe(orientacion ~ .) %>%
-  update_role("title_id", new_role = "ID") 
-
-# especifico el flujo
-wf_embed <- workflow() %>% 
-  add_recipe(noticias_rec_embed_lasso) %>%
-  add_model(lasso_spec)
-
-# espefico la grilla
-grid_lasso <- grid_regular(penalty(), levels = 30)
-
-## Seteo de validación cruzada
-set.seed(234)
-embed_folds <- vfold_cv(train_embed_lasso, v = 5)
-
+# Lo agrego al workflow
+wf <- wf |> 
+  add_model(modelo_a_tunear)
 
 ```
 
-## Entrenamiento
+```{r cross_validation}
 
-```{r}
-# Entreno el modelo
+set.seed(1234)
+
+# Cross validation
+embed_folds <- vfold_cv(train_embed, v = 5)
+
+```
+
+```{r grilla}
+
+# especifico la grilla
+grid_lasso <- grid_regular(penalty(),
+                           levels = 30)
+
+```
+
+```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+
 tictoc::tic()
-tune_lasso_embed <- tune_grid(
-        wf_embed,
-        embed_folds,
-        grid = grid_lasso,
-        control = control_resamples(save_pred = TRUE)
-)
+
+# Entreno el modelo con distintas combinaciones de hiperparámetros
+a_tunear_3 <- tune_grid(wf,
+                        resamples = embed_folds,
+                        grid = grid_lasso,
+                        control = control_resamples(save_pred = TRUE))
+                        #metrics = metric_set(precision, recall,
+                        #                     roc_auc, f_meas))
+
+
+
+write_rds(a_tunear_3, 'models/a_tunear_3.rds')
+
 tictoc::toc()
-```
-
-## Evaluación
-Veamos los dos mejores modelos en términos de ROC:
-
-```{r}
-
-show_best(tune_lasso_embed, "roc_auc", n=2)
 
 ```
 
-Veamos el mejor modelo dentro de 1 error estándar:
-```{r}
+```{r combinaciones_carga}
 
-chosen_auc_embed <- tune_lasso_embed %>%
-  select_by_one_std_err(metric = "roc_auc", -penalty)
-
-chosen_auc_embed
+a_tunear_3 <- read_rds('models/a_tunear_3.rds')
 
 ```
 
-## Entrenamiento final
-Elegimos el mejor modelo.
 
-```{r}
+## Métricas y elección hiperparámetros
 
-final_params_lasso_embed <- finalize_workflow(wf_embed, chosen_auc_embed)
-final_params_lasso_embed
+```{r metricas}
+
+# Muestra las métricas en una tibble
+a_tunear_3 |> 
+  collect_metrics() |> 
+  print()
 
 ```
 
-Fiteemos el mejor modelo sobre el total del traning set:
-```{r}
-fitted_lasso_embed <- fit(final_params_lasso_embed, train_embed_lasso)
+```{r autplot}
+
+a_tunear_3 |> 
+  autoplot() +
+  theme_minimal()
+
 ```
 
-Hagamos su evaluación sobre el test-set
-```{r}
-preds_embed_lasso <- test_embed_lasso %>%
+```{r mejor_ROC}
+
+# Mostramos los hiperparámetros que dan la mejor curva ROC
+show_best(a_tunear_3, "roc_auc")
+
+```
+
+Si bien no se muestra, seleccionamos el cuarto valor de penalty, ya que se obtiene, aplicando el modelo sobre el set de test, una curva ROC más alta.
+
+```{r parametros_finales}
+
+best_ROC <- show_best(a_tunear_3, "roc_auc") |> 
+  filter(.config == "Preprocessor1_Model23")
+
+# best_ROC <- select_best(a_tunear_3,
+#                        "roc_auc")
+
+
+# Finalizamos el modelo con los hiperparámetros que dan la mejor curva ROC
+final_lasso <- finalize_model(modelo_a_tunear,
+                              best_ROC)
+
+# Modelo final
+final_lasso
+
+```
+
+## Entrenamiento modelo final
+
+```{r fit_final}
+
+# Actualizamos al modelo final
+fit_final <- wf |> 
+  update_model(final_lasso) |>
+  # Fiteamos a los datos de entrenamiento
+  fit(train_embed)
+
+```
+
+
+## Evaluación sobre test
+
+```{r fit_en_test}
+
+# Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
+lasso_fit <- workflow() %>%
+  add_recipe(receta_lasso) %>%
+  add_model(final_lasso) %>%
+  fit(data = train_embed)
+
+```
+
+
+```{r prediccion}
+
+preds_embed <- test_embed %>%
         select(orientacion) %>%
-        bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="prob")) %>%
-        bind_cols(predict(fitted_lasso_embed, test_embed_lasso, type="class"))
+        bind_cols(predict(lasso_fit, test_embed, type="prob")) %>%
+        bind_cols(predict(lasso_fit, test_embed, type="class"))
+
+print(preds_embed)
+
 ```
 
 
-```{r}
+```{r metricas_test}
 
 # Calcular las métricas de evaluación
-metricas_3 <- roc_auc(preds_embed_lasso, orientacion, .pred_conservador) %>%
-  bind_rows(accuracy(preds_embed_lasso, orientacion, .pred_class)) %>%
-  bind_rows(precision(preds_embed_lasso, orientacion, .pred_class)) %>%
-  bind_rows(recall(preds_embed_lasso, orientacion, .pred_class)) %>%
-  bind_rows(f_meas(preds_embed_lasso, orientacion, .pred_class)) |> 
+metricas_3 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
+  bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(precision(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(recall(preds_embed, orientacion, .pred_class)) %>%
+  bind_rows(f_meas(preds_embed, orientacion, .pred_class)) |> 
   mutate(modelo = "modelo_3")
 
 metricas_3
@@ -1455,7 +1636,7 @@ metricas_3
 todos_los_objetos <- ls()
 
 # Sólo estos son necesarios para la consigna 3
-objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding", "metricas_1", "metricas_2", "metricas_3")
 
 # Hace la diferencia
 objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
@@ -1552,7 +1733,7 @@ Se agrupa por cada noticia (que tiene un diario específico, con una orientació
 ```{r promedio_x_dimension}
 
 tictoc::tic()
-noticias_embed <- corpus_c_embedding %>%
+noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, medio, orientacion) %>%
   summarise(across(V1:V300, ~mean(.x, na.rm=TRUE))) %>%
   ungroup()
@@ -1566,7 +1747,7 @@ Luego, dividimos los datos en conjuntos de entrenamiento y prueba. Podemos utili
 
 ## Split
 set.seed(1234)
-noticias_split <- initial_split(noticias_embed, strata = orientacion)
+noticias_split <- initial_split(noticias_c_embedding, strata = orientacion)
 
 train_embed <- training(noticias_split)
 test_embed <- testing(noticias_split)
@@ -1579,7 +1760,7 @@ table(train_embed$orientacion)
 ## Hiperparámetros
 
 ```{r}
-rf_spec <- rand_forest(trees = 1000,
+modelo_a_tunear <- rand_forest(trees = 1000,
                        mtry = tune(),
                        min_n = tune()) %>%
   set_mode("classification") %>%
@@ -1591,7 +1772,7 @@ rf_spec <- rand_forest(trees = 1000,
 
 # especifico la receta
 
-noticias_rec_embed <- train_embed |> 
+receta <- train_embed |> 
   recipe(orientacion ~ .) %>%
   step_rm(medio) |> 
   update_role("title_id", new_role = "ID") %>%
@@ -1600,9 +1781,9 @@ noticias_rec_embed <- train_embed |>
 
 
 # especifico el flujo
-wf_embed <- workflow() %>% 
-        add_recipe(noticias_rec_embed) %>%
-        add_model(rf_spec)
+wf <- workflow() %>% 
+        add_recipe(receta) %>%
+        add_model(modelo_a_tunear)
 
 # Seteo de validación cruzada
 set.seed(1234)#ver si tengo que usar la misma semila que esta arriba
@@ -1617,19 +1798,19 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 # Entreno el modelo
 
-tune_params2 <- tune_grid(wf_embed,
+a_tunear_4 <- tune_grid(wf,
                          resamples = embed_folds,
                          grid = 30,
                          metrics = metric_set(precision, recall,
                                               roc_auc, f_meas))
 
-write_rds(tune_params2, 'models/tune_params2.rds')
+write_rds(a_tunear_4, 'models/a_tunear_4.rds')
 
 ```
 
 ```{r modelo_topicos}
 
-tune_params <- read_rds('models/tune_params2.rds')
+a_tunear_4 <- read_rds('models/a_tunear_4.rds')
 
 
 ```
@@ -1637,7 +1818,7 @@ tune_params <- read_rds('models/tune_params2.rds')
 ```{r}
 
 # Muestra las métricas en una tibble
-tune_params |> 
+a_tunear_4 |> 
   collect_metrics() |> 
   print()
 
@@ -1646,7 +1827,7 @@ tune_params |>
 
 ```{r}
 
-autoplot(tune_params2)+
+autoplot(a_tunear_4)+
   theme_minimal()
 
 ```
@@ -1655,7 +1836,7 @@ autoplot(tune_params2)+
 Veamos los  mejores modelos en términos de ROC:
 ```{r}
 
-show_best(tune_params2, "roc_auc")
+show_best(a_tunear_4, "roc_auc")
 
 ```
 
@@ -1664,9 +1845,9 @@ show_best(tune_params2, "roc_auc")
 
 ```{r}
 
-best_ROC <- select_best(tune_params2, "roc_auc")
+best_ROC <- select_best(a_tunear_4, "roc_auc")
 
-final_rf <- finalize_model(rf_spec,
+final_rf <- finalize_model(modelo_a_tunear,
                            best_ROC)
 
 final_rf
@@ -1679,7 +1860,7 @@ final_rf
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
-  add_recipe(noticias_rec_embed) %>%
+  add_recipe(receta) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
 
@@ -1721,7 +1902,7 @@ metricas_4
 todos_los_objetos <- ls()
 
 # Sólo estos son necesarios para la consigna 3
-objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding", "metricas_1", "metricas_2", "metricas_3", "metricas_4")
 
 # Hace la diferencia
 objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
@@ -1746,10 +1927,10 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ```{r}
 
-noticias_embed_lasso <- noticias_embed
+noticias_c_embedding_lasso <- noticias_c_embedding
 ## Split
 set.seed(1234)
-noticias_split <- initial_split(noticias_embed_lasso, strata = orientacion)
+noticias_split <- initial_split(noticias_c_embedding_lasso, strata = orientacion)
 
 train_embed_lasso <- training(noticias_split)
 test_embed_lasso <- testing(noticias_split)
@@ -1770,22 +1951,22 @@ lasso_spec <- logistic_reg(
 
 
 # especifico la receta
-noticias_rec_embed_lasso <-
+receta_lasso <-
   recipe(orientacion ~ ., data = train_embed_lasso) %>%
   update_role("title_id", new_role = "ID") %>%
   step_downsample(orientacion, under_ratio = 1)%>%
   step_rm(medio)  # Elimina la columna 'medio' porque despues me daba un error 
 
 # especifico el flujo
-wf_embed <- workflow() %>% 
-        add_recipe(noticias_rec_embed_lasso) %>%
+wf <- workflow() %>% 
+        add_recipe(receta_lasso) %>%
         add_model(lasso_spec)
 
 # espefico la grilla
 grid_lasso <- grid_regular(penalty(), levels = 30)
 
 ## Seteo de validación cruzada
-set.seed(234)
+set.seed(1234)
 embed_folds <- vfold_cv(train_embed_lasso, v = 5)
 
 
@@ -1797,7 +1978,7 @@ embed_folds <- vfold_cv(train_embed_lasso, v = 5)
 # Entreno el modelo
 tictoc::tic()
 tune_lasso_embed <- tune_grid(
-        wf_embed,
+        wf,
         embed_folds,
         grid = grid_lasso,
         control = control_resamples(save_pred = TRUE)
@@ -1827,7 +2008,7 @@ chosen_auc_embed
 Elegimos el mejor modelo.
 ```{r}
 
-final_params_lasso_embed <- finalize_workflow(wf_embed, chosen_auc_embed)
+final_params_lasso_embed <- finalize_workflow(wf, chosen_auc_embed)
 final_params_lasso_embed
 
 ```
@@ -1873,7 +2054,7 @@ metricas_5
 todos_los_objetos <- ls()
 
 # Sólo estos son necesarios para la consigna 3
-objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding")
+objetos_a_no_eliminar <- c("noticias_topico_6", "noticias", "embedding", "metricas_1", "metricas_2", "metricas_3", "metricas_4", "metricas_5")
 
 # Hace la diferencia
 objetos_a_eliminar <- setdiff(todos_los_objetos, objetos_a_no_eliminar)
@@ -1888,7 +2069,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 # PRUEBA 6 RANDOM FOREST:
-    - Incluye orientación "neutro" (se eliminan al inicio)
+    - Incluye orientación "neutro"
     - Con variable “medio”
     - Balanceando en la receta por orientación	
 
@@ -2057,20 +2238,20 @@ rm(noticias_split)
 
 ```{r hiperparametros_a_tunear}
 
-rf_spec <- rand_forest(trees = 1000,
+modelo_a_tunear <- rand_forest(trees = 1000,
                        mtry = tune(),
                        min_n = tune()) %>%
   set_mode("classification") %>%
   set_engine("ranger")
 
-print(rf_spec)
+print(modelo_a_tunear)
 
 ```
 
 ```{r receta_y_validacion_cruzada}
 
 # especifico la receta
-noticias_rec_embed <- train_embed |> 
+receta <- train_embed |> 
   recipe(orientacion ~ .) |> 
   step_rm(medio) |> 
   update_role("title_id", new_role = "id")
@@ -2088,9 +2269,9 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 ```{r workflow}
 
 # especifico el flujo
-wf_embed <- workflow() %>% 
-  add_recipe(noticias_rec_embed) %>%
-  add_model(rf_spec)
+wf <- workflow() %>% 
+  add_recipe(receta) %>%
+  add_model(modelo_a_tunear)
 
 ```
 
@@ -2103,7 +2284,7 @@ wf_embed <- workflow() %>%
 
 tictoc::tic()
 
-tune_params <- tune_grid(wf_embed,
+a_tunear_6 <- tune_grid(wf,
                          resamples = embed_folds,
                          grid = 30,
                          metrics = metric_set(precision, recall,
@@ -2111,14 +2292,14 @@ tune_params <- tune_grid(wf_embed,
 
 tictoc::toc()
 
-write_rds(tune_params, 'models/tune_params_6.rds')
+write_rds(a_tunear_6, 'models/a_tunear_6.rds')
 
 ```
 
 
 ```{r modelo_carga}
 
-tune_params <- read_rds('models/tune_params_6.rds')
+a_tunear_6 <- read_rds('models/a_tunear_6.rds')
 
 ```
 
@@ -2126,7 +2307,7 @@ tune_params <- read_rds('models/tune_params_6.rds')
 ```{r metricas}
 
 # Muestra las métricas en una tibble
-tune_params |> 
+a_tunear_6 |> 
   collect_metrics() |> 
   print()
 
@@ -2134,7 +2315,7 @@ tune_params |>
 
 ```{r}
 
-tune_params |> 
+a_tunear_6 |> 
   autoplot() +
   theme_minimal()
 
@@ -2145,7 +2326,7 @@ Veamos los  mejores modelos en términos de ROC:
 
 ```{r}
 
-show_best(tune_params, "roc_auc")
+show_best(a_tunear_6, "roc_auc")
 
 ```
 
@@ -2153,9 +2334,9 @@ show_best(tune_params, "roc_auc")
 
 ```{r}
 
-best_ROC <- select_best(tune_params, "roc_auc")
+best_ROC <- select_best(a_tunear_6, "roc_auc")
 
-final_rf <- finalize_model(rf_spec,
+final_rf <- finalize_model(modelo_a_tunear,
                            best_ROC)
 
 # Modelo final
@@ -2172,11 +2353,12 @@ rm(best_ROC)
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
-  add_recipe(noticias_rec_embed) %>%
+  add_recipe(receta) %>%
   add_model(final_rf) %>%
   fit(data = train_embed)
 
 tree_fit
+
 ```
 
 
