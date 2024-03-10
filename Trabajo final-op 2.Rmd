@@ -374,7 +374,7 @@ palabras_topicos %>%
 
 ```
 
-### Gráfico 3: Principales palabras por tópico en LDA
+### Gráfico 4: Principales palabras por tópico en LDA
 
 Visualizamos las principales palabras por tópico en LDA
 
@@ -400,7 +400,7 @@ top_palabras_topicos <- palabras_topicos %>%
   ))
 
 # Creamos el gráfico sin las líneas del área
-grafico3 <- top_palabras_topicos %>%
+grafico4 <- top_palabras_topicos %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   ggplot(aes(x = beta * 1000, 
              y = term, 
@@ -411,21 +411,17 @@ grafico3 <- top_palabras_topicos %>%
   labs(x = "Probabilidad de aparición en una noticia cada 1000 palabras", 
        y = "Términos") +
   theme_minimal() +
-  theme(panel.grid = element_blank(),  # Eliminamos las líneas del área
-        panel.border = element_blank(), # Eliminamos las líneas del área
-        plot.background = element_rect(fill = "white"),
-        axis.text = element_text(face = "bold")) +  # Establecemos el texto del eje en negrita
   labs(title = "Principales palabras por tópicos según modelo LDA",
-       caption = "Gráfico 3",
+       caption = "Gráfico 4",
        plot.title = element_text(size = 10))
 
 # Guardamos el gráfico en la carpeta "Graficos"
-ggsave(filename = "Graficos/Grafico3.png", plot = grafico3, width = 8, height = 6)
+ggsave(filename = "Graficos/Grafico4.png", plot = grafico4, width = 8, height = 6)
 
 
 ```
 
-Para observar qué títulos aparecen en las noticias del 2 (el tópico menos claro)
+Para observar qué probabilidad tiene cada noticia de pertenecer a cada tópico y analizar en detalle el tópico 4
 
 ```{r noticias_x_topico}
 
@@ -434,12 +430,12 @@ topicos_noticias <- tidy(modelo_armado, matrix = "gamma")
 
 ```
 
-Para observar qué títulos aparecen en las noticias del tópico x
+Para observar qué títulos aparecen en las noticias del tópico 4
 
 
 ```{r top_noticias_x_topico, eval=FALSE, include=FALSE}
 
-# Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 1)
+# Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 4)
 
 
 # Para observar qué títulos aparecen en las noticias del tópico 1
@@ -472,7 +468,7 @@ topicos_noticias |>
 ```
 
 
-```{r grafico 4- no incluido en informe}
+```{r grafico 5- no incluido en informe}
 
 # Obtener los datos de los tópicos por medio, VER que no lo incluí en el Informe. Debajo hay otra alternativa
 
@@ -500,11 +496,11 @@ ggplot(topicos_por_medio, aes(x = factor(topic, labels = nombres_topicos), y = m
         legend.title = element_text(size = rel(0.8)), 
         axis.text.x = element_text(angle = 0, hjust = 1)) +  
   labs(title = "Tópicos por medio según modelo LDA", 
-       caption = "Gráfico 4")
+       caption = "Gráfico 5")
 
 ```
 
-```{r grafico 4}
+```{r grafico 5}
 
 # Obtener los datos de los tópicos por medio
 topicos_por_medio <- topicos_noticias %>%
@@ -523,7 +519,7 @@ nombres_topicos <- c("1.Policiales" = "Policiales",
                      "7.Deportes" = "Deportes")
 
 # Crear el gráfico facetado por tópico sin líneas delimitadoras del área del gráfico
-grafico4 <- ggplot(topicos_por_medio, aes(x = factor(medio), y = mean)) +
+grafico5 <- ggplot(topicos_por_medio, aes(x = factor(medio), y = mean)) +
   geom_col(aes(fill = medio), position = "dodge") +
   facet_wrap(~ factor(topic, labels = nombres_topicos), scales = "free") +
   theme_minimal() +
@@ -536,9 +532,9 @@ grafico4 <- ggplot(topicos_por_medio, aes(x = factor(medio), y = mean)) +
   labs(x = "Medio", 
        y = "Porcentaje (%)",
        title = "Tópicos por medio según modelo LDA", 
-       caption = "Gráfico 4")
+       caption = "Gráfico 5")
 
-ggsave(filename = "Graficos/Grafico4.png", plot = grafico4, width = 8, height = 6)
+ggsave(filename = "Graficos/Grafico5.png", plot = grafico5, width = 8, height = 6)
 ```
 
 ### Tópicos resultantes LDA  (REVISAR)
@@ -635,7 +631,7 @@ grafico5 <- betas_stm %>%
         panel.grid.minor = element_blank(),
         axis.line = element_line(color = "black")) +
   labs(title = "Principales palabras por Tópico según modelo STM", 
-       caption = "Gráfico 5",
+       caption = "Gráfico 7",
        plot.title = element_text(size = 10))
 
 # Guardar el gráfico como un archivo
@@ -677,7 +673,7 @@ theta_stm_7 %>%
     theme(legend.position = "none",  # Quitar la leyenda de medio
           axis.text.x = element_text(angle = 45, hjust = 1)) +  # Ajustar las etiquetas del eje x
     labs(title = "Tópicos por medio según modelo STM", 
-       caption = "Gráfico 6",  
+       caption = "Gráfico 8",  
          plot.title = element_text(size = 14)) +
     geom_text(aes(label = medio), vjust = -0.5, size = 3, position = position_dodge(width = 1))
 
