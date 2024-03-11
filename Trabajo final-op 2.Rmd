@@ -2,7 +2,9 @@
 title: "Trabajo Final Opción 2"
 author: "Thelma Fratarelli, Beatriz Soria e Ignacio Luis Bastías"
 date: "2023-12-27"
-output: word_document
+output:
+  html_document:
+    df_print: paged
 ---
 Trabajo Final
 
@@ -34,8 +36,7 @@ noticias <- read_csv('M5_corpus_medios.csv')
 
 noticias |> 
   slice(1:50) |> 
-  print(noticias) |> 
-  View()
+  head()
 
 ```
 
@@ -290,7 +291,7 @@ ggplot(top_words_tf_ok, aes(x = tf*1000,
 
 
 
-```{r elimina_objetos}
+```{r elimina_objetos_punto1}
 # Elimina objetos que ya no necesitamos
 rm(top_words_tf, top_words_idf, top_words_tf_idf, corpus_tf_idf_medio,top_words_tf_ok, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 ```
@@ -720,7 +721,7 @@ noticias_topico_6 <- topicos_noticias |>
 
 ## Elimina objetos previos
 
-```{r elimina_objetos}
+```{r elimina_objetos_punto3}
 
 # Elimina todos los objetos excepto los necesarios para la consigna 3
 
@@ -806,7 +807,7 @@ table(corpus_noticias_t6$orientacion)
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
-```{r preprocesamiento}
+```{r preprocesamiento1}
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
 
@@ -819,7 +820,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 ```
 
 
-```{r tokenización}
+```{r tokenización1}
 
 corpus_noticias_t6 <- corpus_noticias_t6 |> 
   mutate(title_id = row_number()) |> 
@@ -832,7 +833,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ### Embedding: de palabra a noticia
 
-```{r union_embedding}
+```{r union_embedding1}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
 corpus_c_embedding <- corpus_noticias_t6 |>
@@ -843,7 +844,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r promedio_x_dimension}
+```{r promedio_x_dimension1}
 
 noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, orientacion) %>%
@@ -856,7 +857,7 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ### Spliteo
 
-```{r spliteo}
+```{r spliteo1}
 
 set.seed(1234)
 
@@ -873,7 +874,7 @@ table(train_embed$orientacion)
 
 ### Receta
 
-```{r receta}
+```{r receta1}
 
 # Especifico la receta
 receta <- train_embed |> 
@@ -895,7 +896,7 @@ Los hiperparámetros a definir son:
       -`mtry`: cantidad de variables que se van a probar en cada iteración
       -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
-```{r hiperparametros}
+```{r hiperparametros1}
 
 # Establezco el modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
@@ -910,7 +911,7 @@ wf <- wf |>
 
 ```
 
-```{r cross_validation}
+```{r cross_validation1}
 
 set.seed(1234)
 
@@ -919,7 +920,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros1, eval=FALSE, include=FALSE}
 tictoc::tic()
 
 # Entreno el modelo con distintas combinaciones de hiperparámetros
@@ -935,7 +936,7 @@ tictoc::toc()
 
 ```
 
-```{r combinaciones_carga}
+```{r combinaciones_carga1}
 
 a_tunear_1 <- read_rds('models/a_tunear_1.rds')
 
@@ -944,7 +945,7 @@ a_tunear_1 <- read_rds('models/a_tunear_1.rds')
 
 ## Métricas y elección hiperparámetros
 
-```{r metricas}
+```{r métricas1}
 
 # Muestra las métricas en una tibble
 a_tunear_1 |> 
@@ -953,7 +954,7 @@ a_tunear_1 |>
 
 ```
 
-```{r autplot}
+```{r autoplot1}
 
 a_tunear_1 |> 
   autoplot() +
@@ -961,7 +962,7 @@ a_tunear_1 |>
 
 ```
 
-```{r mejor_ROC}
+```{r}
 
 # Mostramos los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_1, "roc_auc")
@@ -970,7 +971,7 @@ show_best(a_tunear_1, "roc_auc")
 
 Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
 
-```{r parametros_finales}
+```{r parametros_finales1}
 
 #best_ROC <- show_best(a_tunear_1, "roc_auc") |> 
 #  filter(mtry == 118 &
@@ -991,7 +992,7 @@ final_rf
 
 ## Entrenamiento modelo final
 
-```{r fit_final}
+```{r fit_final1}
 
 # Actualizamos al modelo final
 fit_final <- wf |> 
@@ -1004,7 +1005,7 @@ fit_final <- wf |>
 
 ## Evaluación sobre test
 
-```{r fit_en_test}
+```{r fit_en_test1}
 
 # Creamos un nuevo flujo de trabajo, agregamos la receta y el modelo, y ajustamos a los datos de entrenamiento
 tree_fit <- workflow() %>%
@@ -1015,7 +1016,7 @@ tree_fit <- workflow() %>%
 ```
 
 
-```{r prediccion}
+```{r prediccion1}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -1028,7 +1029,7 @@ print(preds_embed)
 ```
 
 
-```{r metricas_test}
+```{r metricas1_test}
 
 metricas_1 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
   bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
@@ -1043,7 +1044,7 @@ metricas_1
 
 ## Elimina objetos previos
 
-```{r elimina_objetos}
+```{r}
 
 # Elimina todos los objetos excepto los necesarios para el siguiente modelo
 
@@ -1081,7 +1082,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ### Tokenización y construcción de features mediante el embedding
 
-```{r corpus_noticias_t6}
+```{r}
 
 # Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
 
@@ -1103,7 +1104,7 @@ table(corpus_noticias_t6$medio)
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 
-```{r preprocesamiento}
+```{r preprocesamiento2}
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
@@ -1116,7 +1117,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 ```
 
 
-```{r tokenización}
+```{r tokenización2}
 
 corpus_noticias_t6 <- corpus_noticias_t6 |> 
   mutate(title_id = row_number()) |> 
@@ -1129,7 +1130,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ### Embedding: de palabra a noticia
 
-```{r union_embedding}
+```{r union_embedding2}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
 corpus_c_embedding <- corpus_noticias_t6 |>
@@ -1140,7 +1141,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r promedio_x_dimension}
+```{r promedio_x_dimension2}
 
 noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, medio, orientacion) %>% 
@@ -1154,7 +1155,7 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ### Spliteo
 
-```{r spliteo}
+```{r spliteo2}
 
 set.seed(1234)
 
@@ -1171,7 +1172,7 @@ table(train_embed$medio)
 
 ### Receta
 
-```{r receta}
+```{r receta2}
 
 # Especifico la receta
 receta <- train_embed |> 
@@ -1196,7 +1197,7 @@ Los hiperparámetros a definir son:
       -`mtry`: cantidad de variables que se van a probar en cada iteración
       -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
-```{r hiperparametros}
+```{r hiperparametros2}
 
 # Establezco el modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
@@ -1212,7 +1213,7 @@ wf <- wf |>
 
 ```
 
-```{r cross_validation}
+```{r cross_validation2}
 
 set.seed(1234)
 
@@ -1221,7 +1222,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros2, eval=FALSE, include=FALSE}
 
 tictoc::tic()
 
@@ -1238,7 +1239,7 @@ tictoc::toc()
 
 ```
 
-```{r combinaciones_carga}
+```{r combinaciones_carga2}
 
 a_tunear_2 <- read_rds('models/a_tunear_2.rds')
 
@@ -1247,7 +1248,7 @@ a_tunear_2 <- read_rds('models/a_tunear_2.rds')
 
 ## Métricas y elección hiperparámetros
 
-```{r metricas}
+```{r métricas2}
 
 # Muestra las métricas en una tibble
 a_tunear_2 |> 
@@ -1256,7 +1257,7 @@ a_tunear_2 |>
 
 ```
 
-```{r autplot}
+```{r autoplot2}
 
 a_tunear_2 |> 
   autoplot() +
@@ -1264,7 +1265,7 @@ a_tunear_2 |>
 
 ```
 
-```{r mejor_ROC}
+```{r}
 
 # Mostramos los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_2, "roc_auc")
@@ -1273,7 +1274,7 @@ show_best(a_tunear_2, "roc_auc")
 
 Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
 
-```{r parametros_finales}
+```{r parametros_finales2}
 
 # best_ROC <- show_best(a_tunear_2, "roc_auc") |> 
 #  filter(mtry == 118 &
@@ -1294,7 +1295,7 @@ final_rf
 
 ## Entrenamiento modelo final
 
-```{r fit_final}
+```{r fit_final2}
 
 # Actualizamos al modelo final
 fit_final <- wf |> 
@@ -1307,7 +1308,7 @@ fit_final <- wf |>
 
 ## Evaluación sobre test
 
-```{r fit_en_test}
+```{r fit_en_test2}
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
@@ -1318,7 +1319,7 @@ tree_fit <- workflow() %>%
 ```
 
 
-```{r prediccion}
+```{r prediccion2}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -1330,7 +1331,7 @@ print(preds_embed)
 ```
 
 
-```{r metricas_test}
+```{r metricas2_test}
 
 metricas_2 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
   bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
@@ -1346,7 +1347,7 @@ metricas_2
 
 ## Elimina objetos previos
 
-```{r elimina_objetos}
+```{r elimina_objetos_previos}
 
 # Elimina todos los objetos excepto los necesarios para el siguiente modelo
 
@@ -1381,7 +1382,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ### Tokenización y construcción de features mediante el embedding
 
-```{r corpus_noticias_t6}
+```{r}
 
 # Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto y la orientación del medio del cual sale la noticia
 
@@ -1403,7 +1404,7 @@ table(corpus_noticias_t6$orientacion)
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
-```{r preprocesamiento}
+```{r preprocesamiento3}
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
 
@@ -1415,7 +1416,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 %>%
 
 ```
 
-```{r tokenización}
+```{r tokenización3}
 
 corpus_noticias_t6 <- corpus_noticias_t6 |> 
   mutate(title_id = row_number()) |> 
@@ -1428,7 +1429,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ### Embedding: de palabra a noticia
 
-```{r union_embedding}
+```{r union_embedding3}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
 corpus_c_embedding <- corpus_noticias_t6 |>
@@ -1439,7 +1440,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r promedio_x_dimension}
+```{r promedio_x_dimension3}
 
 noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, orientacion) %>% 
@@ -1452,7 +1453,7 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ### Spliteo
 
-```{r spliteo}
+```{r spliteo3}
 
 set.seed(1234)
 
@@ -1470,7 +1471,7 @@ table(train_embed$orientacion)
 
 ### Receta
 
-```{r receta}
+```{r receta3}
 
 # Especifico la receta
 receta_lasso <- train_embed |> 
@@ -1493,7 +1494,7 @@ Los hiperparámetros a definir son:
       -`penalty`: _____________
       -`mixture`: _____________
       
-```{r hiperparametros}
+```{r hiperparametros3}
 
 # Establezco el modelo a tunear
 modelo_a_tunear <- logistic_reg(penalty = tune(),
@@ -1508,7 +1509,7 @@ wf <- wf |>
 
 ```
 
-```{r cross_validation}
+```{r cross_validation3}
 
 set.seed(1234)
 
@@ -1517,7 +1518,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-```{r grilla}
+```{r}
 
 # especifico la grilla
 grid_lasso <- grid_regular(penalty(),
@@ -1525,7 +1526,7 @@ grid_lasso <- grid_regular(penalty(),
 
 ```
 
-```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros3, eval=FALSE, include=FALSE}
 
 tictoc::tic()
 
@@ -1545,7 +1546,7 @@ tictoc::toc()
 
 ```
 
-```{r combinaciones_carga}
+```{r combinaciones_carga3}
 
 a_tunear_3 <- read_rds('models/a_tunear_3.rds')
 
@@ -1554,7 +1555,7 @@ a_tunear_3 <- read_rds('models/a_tunear_3.rds')
 
 ## Métricas y elección hiperparámetros
 
-```{r metricas}
+```{r métricas3}
 
 # Muestra las métricas en una tibble
 a_tunear_3 |> 
@@ -1563,15 +1564,15 @@ a_tunear_3 |>
 
 ```
 
-```{r autplot}
+```{r autoplot3}
 
-a_tunear_3 |> 
-  autoplot() +
-  theme_minimal()
-
+#a_tunear_3 |> 
+  #autoplot() +
+  #theme_minimal()
+  
 ```
 
-```{r mejor_ROC}
+```{r}
 
 # Mostramos los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_3, "roc_auc")
@@ -1580,7 +1581,7 @@ show_best(a_tunear_3, "roc_auc")
 
 Si bien no se muestra, seleccionamos el cuarto valor de penalty, ya que se obtiene, aplicando el modelo sobre el set de test, una curva ROC más alta.
 
-```{r parametros_finales}
+```{r parametros_finales3}
 
 best_ROC <- show_best(a_tunear_3, "roc_auc") |> 
   filter(.config == "Preprocessor1_Model23")
@@ -1600,7 +1601,7 @@ final_lasso
 
 ## Entrenamiento modelo final
 
-```{r fit_final}
+```{r fit_final3}
 
 # Actualizamos al modelo final
 fit_final <- wf |> 
@@ -1613,7 +1614,7 @@ fit_final <- wf |>
 
 ## Evaluación sobre test
 
-```{r fit_en_test}
+```{r fit_en_test3}
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 lasso_fit <- workflow() %>%
@@ -1624,7 +1625,7 @@ lasso_fit <- workflow() %>%
 ```
 
 
-```{r prediccion}
+```{r prediccion3}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -1636,7 +1637,7 @@ print(preds_embed)
 ```
 
 
-```{r metricas_test}
+```{r metricas3_test}
 
 # Calcular las métricas de evaluación
 metricas_3 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
@@ -1687,7 +1688,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ### Tokenización y construcción de features mediante el embedding
 
-```{r corpus_noticias_t6}
+```{r}
 
 # Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
 
@@ -1710,7 +1711,7 @@ table(corpus_noticias_t6$orientacion)
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 
-```{r preprocesamiento}
+```{r preprocesamiento4}
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
@@ -1722,7 +1723,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ```
 
-```{r tokenización}
+```{r tokenización4}
 
 corpus_noticias_t6 <- corpus_noticias_t6 |> 
   mutate(title_id = row_number()) |> 
@@ -1736,7 +1737,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ### Embedding: de palabra a noticia
 
-```{r union_embedding}
+```{r union_embedding4}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
 corpus_c_embedding <- corpus_noticias_t6 |>
@@ -1747,7 +1748,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r promedio_x_dimension}
+```{r promedio_x_dimension4}
 
 noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, medio, orientacion) %>%
@@ -1760,7 +1761,7 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ### Spliteo
 
-```{r spliteo}
+```{r spliteo4}
 
 set.seed(1234)
 
@@ -1777,7 +1778,7 @@ table(train_embed$medio)
 
 ### Receta
 
-```{r receta}
+```{r receta4}
 
 # Especifico la receta
 receta <- train_embed |> 
@@ -1802,7 +1803,7 @@ Los hiperparámetros a definir son:
       -`mtry`: cantidad de variables que se van a probar en cada iteración
       -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
-```{r hiperparametros}
+```{r hiperparametros4}
 
 # Establezco el modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
@@ -1818,7 +1819,7 @@ wf <- wf |>
 
 ```
 
-```{r cross_validation}
+```{r cross_validation4}
 
 set.seed(1234)
 
@@ -1827,7 +1828,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros4, eval=FALSE, include=FALSE}
 
 tictoc::tic()
 
@@ -1844,7 +1845,7 @@ tictoc::toc()
 
 ```
 
-```{r combinaciones_carga}
+```{r combinaciones_carga4}
 
 a_tunear_4 <- read_rds('models/a_tunear_4.rds')
 
@@ -1853,7 +1854,7 @@ a_tunear_4 <- read_rds('models/a_tunear_4.rds')
 
 ## Métricas y elección hiperparámetros
 
-```{r metricas}
+```{r métricas4}
 
 # Muestra las métricas en una tibble
 a_tunear_4 |> 
@@ -1862,7 +1863,7 @@ a_tunear_4 |>
 
 ```
 
-```{r autplot}
+```{r autoplot4}
 
 a_tunear_4 |> 
   autoplot() +
@@ -1870,7 +1871,7 @@ a_tunear_4 |>
 
 ```
 
-```{r mejor_ROC}
+```{r}
 
 # Mostramos los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_4, "roc_auc")
@@ -1879,7 +1880,7 @@ show_best(a_tunear_4, "roc_auc")
 
 Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
 
-```{r parametros_finales}
+```{r parametros_finales4}
 
 #best_ROC <- show_best(a_tunear_4, "roc_auc") |> 
 #  filter(mtry == 113 &
@@ -1901,7 +1902,7 @@ final_rf
 
 ## Entrenamiento modelo final
 
-```{r fit_final}
+```{r fit_final4}
 
 # Actualizamos al modelo final
 fit_final <- wf |> 
@@ -1913,7 +1914,7 @@ fit_final <- wf |>
 
 ## Evaluación sobre test
 
-```{r fit_en_test}
+```{r fit_en_test4}
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
@@ -1924,7 +1925,7 @@ tree_fit <- workflow() %>%
 ```
 
 
-```{r prediccion}
+```{r prediccion4}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -1936,7 +1937,7 @@ print(preds_embed)
 ```
 
 
-```{r metricas_test}
+```{r metricas4_test}
 
 metricas_4 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
   bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
@@ -1952,7 +1953,7 @@ metricas_4
 
 ## Elimina objetos previos
 
-```{r elimina_objetos}
+```{r}
 
 # Elimina todos los objetos excepto los necesarios para el siguiente modelo
 
@@ -1986,7 +1987,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ### Tokenización y construcción de features mediante el embedding
 
-```{r corpus_noticias_t6}
+```{r}
 
 # Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
 
@@ -2009,7 +2010,7 @@ table(corpus_noticias_t6$orientacion)
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 
-```{r preprocesamiento}
+```{r preprocesamiento5}
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
@@ -2021,7 +2022,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ```
 
-```{r tokenización}
+```{r tokenización5}
 
 corpus_noticias_t6 <- corpus_noticias_t6 |> 
   mutate(title_id = row_number()) |> 
@@ -2034,7 +2035,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ### Embedding: de palabra a noticia
 
-```{r union_embedding}
+```{r union_embedding5}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
 corpus_c_embedding <- corpus_noticias_t6 |>
@@ -2045,7 +2046,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r promedio_x_dimension}
+```{r promedio_x_dimension5}
 
 noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, medio, orientacion) %>%
@@ -2058,7 +2059,7 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ### Spliteo
 
-```{r spliteo}
+```{r spliteo5}
 
 set.seed(1234)
 
@@ -2076,7 +2077,7 @@ table(train_embed$medio)
 
 ### Receta
 
-```{r receta}
+```{r receta5}
 
 # Especifico la receta
 receta_lasso <- train_embed |> 
@@ -2099,7 +2100,7 @@ Los hiperparámetros a definir son:
       -`penalty`: _____________
       -`mixture`: _____________
       
-```{r hiperparametros}
+```{r hiperparametros5}
 
 # Establezco el modelo a tunear
 modelo_a_tunear <- logistic_reg(penalty = tune(),
@@ -2114,7 +2115,7 @@ wf <- wf |>
 
 ```
 
-```{r cross_validation}
+```{r cross_validation5}
 
 set.seed(1234)
 
@@ -2123,7 +2124,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-```{r grilla}
+```{r}
 
 # especifico la grilla
 grid_lasso <- grid_regular(penalty(),
@@ -2131,7 +2132,7 @@ grid_lasso <- grid_regular(penalty(),
 
 ```
 
-```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros5, eval=FALSE, include=FALSE}
 
 tictoc::tic()
 
@@ -2151,7 +2152,7 @@ tictoc::toc()
 
 ```
 
-```{r combinaciones_carga}
+```{r combinaciones_carga5}
 
 a_tunear_5 <- read_rds('models/a_tunear_5.rds')
 
@@ -2160,7 +2161,7 @@ a_tunear_5 <- read_rds('models/a_tunear_5.rds')
 
 ## Métricas y elección hiperparámetros
 
-```{r metricas}
+```{r métricas5}
 
 # Muestra las métricas en una tibble
 a_tunear_5 |> 
@@ -2169,15 +2170,15 @@ a_tunear_5 |>
 
 ```
 
-```{r autplot}
+```{r autoplot5}
 
-a_tunear_5 |> 
-  autoplot() +
-  theme_minimal()
+#a_tunear_5 |> 
+  #autoplot() +
+  #theme_minimal()
 
 ```
 
-```{r mejor_ROC}
+```{r}
 
 # Mostramos los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_5, "roc_auc")
@@ -2186,7 +2187,7 @@ show_best(a_tunear_5, "roc_auc")
 
 Si bien no se muestra, seleccionamos el cuarto valor de penalty, ya que se obtiene, aplicando el modelo sobre el set de test, una curva ROC más alta.
 
-```{r parametros_finales}
+```{r parametros_finales5}
 
 #best_ROC <- show_best(a_tunear_5, "roc_auc") |> 
 #  filter(.config == "Preprocessor1_Model25")
@@ -2207,7 +2208,7 @@ final_lasso
 
 ## Entrenamiento modelo final
 
-```{r fit_final}
+```{r fit_final5}
 
 # Actualizamos al modelo final
 fit_final <- wf |> 
@@ -2219,7 +2220,7 @@ fit_final <- wf |>
 
 ## Evaluación sobre test
 
-```{r fit_en_test}
+```{r fit_en_test5}
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 lasso_fit <- workflow() %>%
@@ -2230,7 +2231,7 @@ lasso_fit <- workflow() %>%
 ```
 
 
-```{r prediccion}
+```{r prediccion5}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -2242,7 +2243,7 @@ print(preds_embed)
 ```
 
 
-```{r metricas_test}
+```{r metricas5_test}
 
 # Calcular las métricas de evaluación
 metricas_5 <- roc_auc(preds_embed, orientacion, .pred_conservador) %>%
@@ -2259,7 +2260,7 @@ metricas_5
 
 ## Elimina objetos previos
 
-```{r elimina_objetos}
+```{r}
 
 # Elimina todos los objetos excepto los necesarios para el siguiente modelo
 
@@ -2293,7 +2294,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ### Tokenización y construcción de features mediante el embedding
 
-```{r corpus_noticias_t6}
+```{r}
 
 # Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto, el medio y la orientación del medio del cual sale la noticia
 
@@ -2315,7 +2316,7 @@ table(corpus_noticias_t6$orientacion)
 
 Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 
-```{r preprocesamiento}
+```{r preprocesamiento6}
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
@@ -2327,7 +2328,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ```
 
-```{r tokenización}
+```{r tokenización6}
 
 corpus_noticias_t6 <- corpus_noticias_t6 |> 
   mutate(title_id = row_number()) |> 
@@ -2341,7 +2342,7 @@ corpus_noticias_t6 <- corpus_noticias_t6 |>
 
 ### Embedding: de palabra a noticia
 
-```{r union_embedding}
+```{r union_embedding6}
 
 # Unimos las noticias con el embedding, para que cada palabra de este conjunto de noticias tenga las 300 dimensiones
 corpus_c_embedding <- corpus_noticias_t6 |>
@@ -2352,7 +2353,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
-```{r promedio_x_dimension}
+```{r promedio_x_dimension6}
 
 noticias_c_embedding <- corpus_c_embedding %>%
   group_by(title_id, medio, orientacion) %>%
@@ -2419,7 +2420,7 @@ noticias_balanceadas |>
 
 ### Spliteo
 
-```{r spliteo}
+```{r spliteo6}
 
 set.seed(1234)
 
@@ -2437,7 +2438,7 @@ table(train_embed$medio)
 
 ### Receta
 
-```{r receta}
+```{r receta6}
 
 # Especifico la receta
 receta <- train_embed |> 
@@ -2462,7 +2463,7 @@ Los hiperparámetros a definir son:
       -`mtry`: cantidad de variables que se van a probar en cada iteración
       -`min_n`: mínima cantidad de observaciones que tiene que haber en cada nodo
 
-```{r hiperparametros}
+```{r hiperparametros6}
 
 # Establezco el modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
@@ -2478,7 +2479,7 @@ wf <- wf |>
 
 ```
 
-```{r cross_validation}
+```{r cross_validation6}
 
 set.seed(1234)
 
@@ -2487,7 +2488,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```
 
-```{r combinaciones_hiperparametros, eval=FALSE, include=FALSE}
+```{r combinaciones_hiperparametros6, eval=FALSE, include=FALSE}
 
 tictoc::tic()
 
@@ -2504,7 +2505,7 @@ tictoc::toc()
 
 ```
 
-```{r combinaciones_carga}
+```{r combinaciones_carga6}
 
 a_tunear_6 <- read_rds('models/a_tunear_6.rds')
 
@@ -2513,7 +2514,7 @@ a_tunear_6 <- read_rds('models/a_tunear_6.rds')
 
 ## Métricas y elección hiperparámetros
 
-```{r metricas}
+```{r métricas6}
 
 # Muestra las métricas en una tibble
 a_tunear_6 |> 
@@ -2522,7 +2523,7 @@ a_tunear_6 |>
 
 ```
 
-```{r autplot}
+```{r autoplot6}
 
 a_tunear_6 |> 
   autoplot() +
@@ -2530,7 +2531,7 @@ a_tunear_6 |>
 
 ```
 
-```{r mejor_ROC}
+```{r}
 
 # Mostramos los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_6, "roc_auc")
@@ -2539,7 +2540,7 @@ show_best(a_tunear_6, "roc_auc")
 
 Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
 
-```{r parametros_finales}
+```{r parametros_finales6}
 
 #best_ROC <- show_best(a_tunear_6, "roc_auc") |> 
 #  filter(mtry == 74 &
@@ -2561,7 +2562,7 @@ final_rf
 
 ## Entrenamiento modelo final
 
-```{r fit_final}
+```{r fit_final6}
 
 # Actualizamos al modelo final
 fit_final <- wf |> 
@@ -2573,7 +2574,7 @@ fit_final <- wf |>
 
 ## Evaluación sobre test
 
-```{r fit_en_test}
+```{r fit_en_test6}
 
 # Crear un nuevo flujo de trabajo, agregar la receta y el modelo, y ajustar al conjunto de datos de entrenamiento en una sola línea
 tree_fit <- workflow() %>%
@@ -2584,7 +2585,7 @@ tree_fit <- workflow() %>%
 ```
 
 
-```{r prediccion}
+```{r prediccion6}
 
 preds_embed <- test_embed %>%
         select(orientacion) %>%
@@ -2596,7 +2597,7 @@ print(preds_embed)
 ```
 
 
-```{r metricas_test}
+```{r metricas6_test}
 
 metricas_6 <- roc_auc(preds_embed, orientacion, c(.pred_conservador, .pred_neutro, .pred_progresista)) %>%
   bind_rows(accuracy(preds_embed, orientacion, .pred_class)) %>%
@@ -2612,7 +2613,7 @@ metricas_6
 
 ## Elimina objetos previos
 
-```{r elimina_objetos}
+```{r}
 
 # Elimina todos los objetos excepto las métricas. A propósito le dejé el "#", así se genera un error si uno pone "run all" y así uno decide, en el momento, si quiere eliminar todos los objetos y hacer las métricas o modificar algo de alguno de los objetos anteriores
 
