@@ -647,6 +647,10 @@ grafico7 <- theta_stm_7 %>%
 
 print (grafico7)
 
+
+# Guardar el gráfico como un archivo
+ggsave(filename = "Graficos/Grafico7.png", plot = grafico7, width = 8, height = 6)
+
 ```
 
 ```{r eval=FALSE, include=FALSE}
