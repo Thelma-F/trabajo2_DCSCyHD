@@ -1,20 +1,20 @@
 ---
-title: "Trabajo Final Opción 2"
+title: "Trabajo Final-Opción 2"
 author: "Thelma Fratarelli, Beatriz Soria e Ignacio Luis Bastías"
 date: "2023-12-27"
 output:
   html_document:
     df_print: paged
 ---
-Trabajo Final
+Trabajo Final Diploma Universitario  en Ciencias Sociales Computacionales y Humanidades Digitales
 
-*Introducción*
+##Introducción
 
-#Preparación datos
+##Preparación de los datos
 
-## Se cargan las librerías a emplear
+#Se cargan las librerías a emplear
 
-```{r librerias}
+```{r librerias, warning=TRUE}
 
 library(tidyverse)
 library(tidytext)
@@ -45,7 +45,7 @@ noticias |>
 
 ```{r limpieza_noticias}
 
-# Arma el listado de noticias que no contienen texto
+#Arma el listado de noticias que no contienen texto
 noticias_vacias <- noticias |> 
   filter(is.na(texto))
 
@@ -159,13 +159,13 @@ corpus_tf_idf_medio |>
 
 ```
 
-# Consigna 1) 
+# Punto 1 
 
     - a) ¿Cuáles son las palabras más utilizadas en cada uno de los medios?
     - b) ¿Pueden verse diferencias? (tener en cuenta las diferentes métricas trabajadas en el curso: tf, tf-idf, etc.)
     - c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
-## A) y B)
+## Puntos a y b
 ### Armamos un corpus con las tf, idf y las tf_idf por medio
 #### Buscamos las TF (las palabras más importantes/frecuentes)
 
@@ -234,7 +234,7 @@ ggplot(top_words_tf, aes(x = tf,
 
 ```
 
-#### Tabla 1: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+#### Tabla 1: Palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
 
 ```{r tabla_palabras_informativas}
 top_words_idf %>%
@@ -242,7 +242,7 @@ top_words_idf %>%
   kable(caption = "Top 10 palabras por IDF en cada medio")
 
 ```
-#### Gráfico 2: palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+#### Gráfico 2: Palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
 
 ```{r grafico_palabras_informativas}
 ggplot(top_words_tf_idf, aes(x = tf_idf *1000, 
@@ -296,13 +296,13 @@ ggplot(top_words_tf_ok, aes(x = tf*1000,
 rm(top_words_tf, top_words_idf, top_words_tf_idf, corpus_tf_idf_medio,top_words_tf_ok, noticias_vacias, noticias_mal_descargadas, noticias_cortas, noticias_error_ln)
 ```
 
-# Consigna 2) 
+# Punto 2 
 
     - a) ¿Cuáles son los tópicos principales en el corpus?
     - b) ¿Pueden evidenciar diferencias en cada uno de los medios? Explicar qué método se utilizó para responder la pregunta y cuáles son los supuestos del mismo
     - c) Generar las visualizaciones más adecuadas para responder a las preguntas
 
-## Trabjo con modelo LDA
+## Trabajo con modelo Latent Dirichlet Allocation (LDA)
 
 ```{r corpus_tf_idf_noticia}
 
@@ -547,7 +547,7 @@ Tópico 5: Justicia y Seguridad
 Tópico 6: Política nacional y elecciones
 Tópico 7: Deportes 
 
-## Alternativa: STM
+## Alternativa con  Structural Topic Modeling (STM)
 Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos muy parecidos a los que se logra con LDA
 
 Construimos una DFM
@@ -586,7 +586,7 @@ write_rds(stm_7, 'models/stm_7_prev_cont.rds')
 
 ```
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 stm_7 <- read_rds('models/stm_7_prev_cont.rds')
 
 ```
@@ -594,7 +594,7 @@ stm_7 <- read_rds('models/stm_7_prev_cont.rds')
 
 Generamos la matriz beta y theta
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 
 betas_stm <- tidy(stm_7, matrix='beta')
 tetha_stm <- tidy(stm_7, matrix='theta')
@@ -604,7 +604,7 @@ tetha_stm <- tidy(stm_7, matrix='theta')
 ### Gráfico 5: Principales palabras por tópico en STM
 
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 
 grafico5 <- betas_stm %>%
   group_by(topic) %>%
@@ -698,7 +698,7 @@ labelTopics(stm_7)
     - Tópico 7: Deportes
 
 
-# Consigna 3)
+# Punto 3
 
 A continuación, seleccionar las noticias vinculadas a algún tópico relevante (por ejemplo, “Elecciones”) y construir un clasificador para predecir la orientación del diario. Utilizar alguno de los modelos de clasificación vistos a lo largo de al Diplomatura (regresión logística, random forest, etc.). 
 Utilizar como features el “Spanish Billion Word Corpus and Embeddings”, analizado en clase. ¿Qué resultados arroja el modelo? ¿Es posible mediante el texto de las noticias conocer la línea editorial del diario? 
@@ -743,7 +743,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 ## Carga del embedding
 
-Vamos a usar un embedding para predecir la orientación del diario en función del texto de la noticia. En particular, éste está entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Más detalles [aquí](https://crscardellino.ar/SBWCE/).
+Vamos a usar un embedding para predecir la orientación en función del texto de la noticia. En particular, el mismo está entrenado mediante el algoritmo wor2vec por C. Cardelino. Está entrenado sobre un corpus grande en español. Disponible en https://crscardellino.ar/SBWCE/
 Primero escribirmos la función que carga el embedding y después la ejecutamos:
 
 ```{r carga_embedding}
@@ -771,10 +771,10 @@ embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vect
                              type = "w2v")
 
 ```
+Vamos a realizar distintas pruebas con dos modelos de clasificación, realizando combinaciones de variables e hiperparamétros.
 
-
-# PRUEBA 1	RANDOM FOREST:
-    - Excluye orientación "neutro"
+# PRUEBA 1	RANDOM FOREST
+    - Se excluye de la variable orientación, las observaciones que corresponden a  "neutro"
     - Sin variable “medio”
     - Sin balancear en la receta por orientación
 
@@ -787,7 +787,7 @@ embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vect
 
 ```{r corpus_noticias_t6}
 
-# Se arma el objeto "corpus_noticias_t6", que con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/ elecciones), a lo cual se suman el texto y la orientación del medio del cual sale la noticia
+# Se arma el objeto "corpus_noticias_t6", con el conjunto de noticias que más probablemente pertenezcan al tópico 6 (política/elecciones), a lo cual se suman el texto y la orientación del medio de la noticia.
 
 corpus_noticias_t6 <- noticias_topico_6 |>
   rename(titulo = document) |> 
@@ -853,9 +853,9 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ```
 
-## Preparación modelo
+## Preparación del modelado
 
-### Spliteo
+### Partición de los datos en entrenamiento (train) y prueba (test)
 
 ```{r spliteo1}
 
@@ -872,7 +872,7 @@ table(train_embed$orientacion)
 
 ```
 
-### Receta
+### Elaboración de la receta
 
 ```{r receta1}
 
@@ -943,7 +943,7 @@ a_tunear_1 <- read_rds('models/a_tunear_1.rds')
 ```
 
 
-## Métricas y elección hiperparámetros
+## Métricas y elección de hiperparámetros
 
 ```{r métricas1}
 
@@ -969,7 +969,7 @@ show_best(a_tunear_1, "roc_auc")
 
 ```
 
-Si bien no se muestra, probamos con los otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train
+Si bien no se muestra aquí, probamos con  otros parámetros posibles por si los hiperparámetros pudiesen generar un problema de overfitting. Pero en el set de test, la mejor curva ROC corresponde simultáneamente a los hiperparámetros que producen la mejor curva ROC en el set de train.
 
 ```{r parametros_finales1}
 
@@ -990,7 +990,7 @@ final_rf
 
 ```
 
-## Entrenamiento modelo final
+## Entrenamiento del modelo final
 
 ```{r fit_final1}
 
@@ -1065,7 +1065,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 ```
 
 
-# PPRUEBA 2 RANDOM FOREST:
+# PRUEBA 2 RANDOM FOREST
     - Excluye orientación "neutro" 
     - Con variable medio
     - Balanceando en la receta por medio	
@@ -1151,9 +1151,9 @@ noticias_c_embedding <- corpus_c_embedding %>%
 ```
 
 
-## Preparación modelo
+## Preparación del modelado (Prueba 2)
 
-### Spliteo
+### Partición de los datos en entrenamiento (train) y prueba (test)
 
 ```{r spliteo2}
 
@@ -1170,7 +1170,7 @@ table(train_embed$medio)
 
 ```
 
-### Receta
+### Elaboración de la receta
 
 ```{r receta2}
 
@@ -1246,7 +1246,7 @@ a_tunear_2 <- read_rds('models/a_tunear_2.rds')
 ```
 
 
-## Métricas y elección hiperparámetros
+## Métricas y elección de hiperparámetros
 
 ```{r métricas2}
 
@@ -1370,7 +1370,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# PRUEBA 3	REGRESION LOGISTICA LASSO:
+# PRUEBA 3	REGRESIÓN LOGÍSTICA LASSO:
     - Excluye orientación "neutro"
     - Sin balancear en la receta por orientación 
 
@@ -1449,9 +1449,10 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ```
 
-## Preparación modelo
+## Preparación del modelado (Prueba 3)
 
-### Spliteo
+### Partición de los datos en entrenamiento (train) y prueba (test)
+
 
 ```{r spliteo3}
 
@@ -1469,7 +1470,7 @@ table(train_embed$orientacion)
 ```
 
 
-### Receta
+### Elaboración de la receta
 
 ```{r receta3}
 
@@ -1676,7 +1677,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# PRUEBA 4	RANDOM FOREST:
+# PRUEBA 4	RANDOM FOREST
     - Orientación dicotómica conservador vs no conservador (incluye neutro y progresista)
     - Balanceando en la receta por orientación	
 
@@ -1757,9 +1758,9 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ```
 
-## Preparación modelo
+## Preparación del modelado (Prueba 4)
 
-### Spliteo
+### Partición de los datos en entrenamiento (train) y prueba (test)
 
 ```{r spliteo4}
 
@@ -1776,7 +1777,7 @@ table(train_embed$medio)
 
 ```
 
-### Receta
+### Elaboración de la receta
 
 ```{r receta4}
 
@@ -1975,8 +1976,8 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# PRUEBA 5	REGRESION LOGISTICA LASSO:
-    - con variable Orientación dicotómica conservador vs no conservador (incluye neutro y progresista)
+# PRUEBA 5	REGRESIÓN LOGÍSTICA LASSO
+    - Con variable orientación dicotómica conservador vs no conservador (incluye neutro y progresista)
     - Balanceando en la receta por orientación	
 
         **Curva Roc sobre train: 0.7143954**
@@ -2055,9 +2056,10 @@ noticias_c_embedding <- corpus_c_embedding %>%
 
 ```
 
-## Preparación modelo
+## Preparación del modelado (Prueba 5)
 
-### Spliteo
+### Partición de los datos en entrenamiento (train) y prueba (test)
+
 
 ```{r spliteo5}
 
@@ -2075,7 +2077,7 @@ table(train_embed$medio)
 ```
 
 
-### Receta
+### Elaboración de la receta
 
 ```{r receta5}
 
@@ -2282,7 +2284,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# PRUEBA 6 RANDOM FOREST:
+# PRUEBA 6 RANDOM FOREST
     - Incluye orientación "neutro"
     - Con variable “medio”
     - Balanceando antes de la receta por orientación-medio	
@@ -2416,9 +2418,9 @@ noticias_balanceadas |>
 ```
 
 
-## Preparación modelo
+## Preparación del modelado (Prueba 6)
 
-### Spliteo
+### Partición de los datos en entrenamiento (train) y prueba (test)
 
 ```{r spliteo6}
 
@@ -2436,7 +2438,7 @@ table(train_embed$medio)
 ```
 
 
-### Receta
+### Elaboración de la receta
 
 ```{r receta6}
 
@@ -2632,7 +2634,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# GRÁFICO COMPARANDO MODELOS
+# GRÁFICO 7 COMPARANDO MÉTRICAS DE LOS MODELOS PROBADOS
 
 
 ```{r grafico_metricas_modelos}
