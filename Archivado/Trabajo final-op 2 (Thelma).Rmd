@@ -600,6 +600,38 @@ topicos_noticias %>%
 ```
 
 
+```{r grafico 5- no incluido en informe}
+
+# Obtener los datos de los tópicos por medio, VER que no lo incluí en el Informe. Debajo hay otra alternativa
+
+topicos_por_medio <- topicos_noticias %>%
+  rename(titulo = document) %>% 
+  left_join(noticias %>% select(titulo, medio) %>% unique()) %>%
+  group_by(medio, topic) %>%
+  summarise(mean = mean(gamma)*100)
+
+# Renombrar las etiquetas de los tópicos
+nombres_topicos <- c("1.Policiales" = "Policiales",
+                     "2.Política internacional" = "Política internacional",
+                     "3.Economía y finanzas" = "Economía y finanzas",
+                     "4.Cultura y entretenimiento" = "Cultura y entretenimiento",
+                     "5.Justicia y Seguridad" = "Justicia y Seguridad",
+                     "6.Política nacional y elecciones" = "Política nacional y elecciones",
+                     "7.Deportes" = "Deportes")
+
+# Crear el gráfico
+ggplot(topicos_por_medio, aes(x = factor(topic, labels = nombres_topicos), y = mean, fill = medio)) +
+  geom_col(position = "dodge") +
+  theme_minimal() +
+  theme(legend.position = "bottom",  
+        legend.text = element_text(size = rel(0.8)),  
+        legend.title = element_text(size = rel(0.8)), 
+        axis.text.x = element_text(angle = 0, hjust = 1)) +  
+  labs(title = "Tópicos por medio según modelo LDA", 
+       caption = "Gráfico 5")
+
+```
+
 # Revisar nombre de los tópicos LDA 7
 
 Tópico 1: Justicia y seguridad

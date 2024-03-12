@@ -416,6 +416,8 @@ grafico4 <- top_palabras_topicos %>%
        caption = "Gráfico 4",
        plot.title = element_text(size = 10))
 
+print (grafico4)
+
 # Guardamos el gráfico en la carpeta "Graficos"
 ggsave(filename = "Graficos/Grafico4.png", plot = grafico4, width = 8, height = 6)
 
@@ -469,38 +471,6 @@ topicos_noticias |>
 ```
 
 
-```{r grafico 5- no incluido en informe}
-
-# Obtener los datos de los tópicos por medio, VER que no lo incluí en el Informe. Debajo hay otra alternativa
-
-topicos_por_medio <- topicos_noticias %>%
-  rename(titulo = document) %>% 
-  left_join(noticias %>% select(titulo, medio) %>% unique()) %>%
-  group_by(medio, topic) %>%
-  summarise(mean = mean(gamma)*100)
-
-# Renombrar las etiquetas de los tópicos
-nombres_topicos <- c("1.Policiales" = "Policiales",
-                     "2.Política internacional" = "Política internacional",
-                     "3.Economía y finanzas" = "Economía y finanzas",
-                     "4.Cultura y entretenimiento" = "Cultura y entretenimiento",
-                     "5.Justicia y Seguridad" = "Justicia y Seguridad",
-                     "6.Política nacional y elecciones" = "Política nacional y elecciones",
-                     "7.Deportes" = "Deportes")
-
-# Crear el gráfico
-ggplot(topicos_por_medio, aes(x = factor(topic, labels = nombres_topicos), y = mean, fill = medio)) +
-  geom_col(position = "dodge") +
-  theme_minimal() +
-  theme(legend.position = "bottom",  
-        legend.text = element_text(size = rel(0.8)),  
-        legend.title = element_text(size = rel(0.8)), 
-        axis.text.x = element_text(angle = 0, hjust = 1)) +  
-  labs(title = "Tópicos por medio según modelo LDA", 
-       caption = "Gráfico 5")
-
-```
-
 ```{r grafico 5}
 
 # Obtener los datos de los tópicos por medio
@@ -535,10 +505,12 @@ grafico5 <- ggplot(topicos_por_medio, aes(x = factor(medio), y = mean)) +
        title = "Tópicos por medio según modelo LDA", 
        caption = "Gráfico 5")
 
+print(grafico5)
+
 ggsave(filename = "Graficos/Grafico5.png", plot = grafico5, width = 8, height = 6)
 ```
 
-### Tópicos resultantes LDA  (REVISAR)
+### Tópicos resultantes LDA 
 Tópico 1: Policiales
 Tópico 2: Política internacional
 Tópico 3: Economía y finanzas
@@ -601,12 +573,12 @@ tetha_stm <- tidy(stm_7, matrix='theta')
 
 ```
 
-### Gráfico 5: Principales palabras por tópico en STM
+### Gráfico 6: Principales palabras por tópico en STM
 
 
 ```{r}
 
-grafico5 <- betas_stm %>%
+grafico6 <- betas_stm %>%
   group_by(topic) %>%
   slice_max(beta, n = 15) %>% 
   ungroup() %>%
@@ -626,17 +598,14 @@ grafico5 <- betas_stm %>%
   facet_wrap(~ topic, scales='free_y') +
   scale_y_reordered() +
   theme_minimal() +
-  theme(panel.background = element_rect(fill = "white"),
-        plot.background = element_rect(fill = "white"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(color = "black")) +
   labs(title = "Principales palabras por Tópico según modelo STM", 
-       caption = "Gráfico 7",
+       caption = "Gráfico 6",
        plot.title = element_text(size = 10))
 
+  print (grafico6)
+
 # Guardar el gráfico como un archivo
-ggsave(filename = "Graficos/Grafico5.png", plot = grafico5, width = 8, height = 6)
+ggsave(filename = "Graficos/Grafico6.png", plot = grafico6, width = 8, height = 6)
 
 ```
 
@@ -649,13 +618,13 @@ theta_stm_7 <- tetha_stm %>%
  
 ```
 
-### Gráfico 6: Principales palabras por tópico según medio en STM /VER SI ESTE TITULO ES CORRECTO
+### Gráfico 7: Principales palabras por tópico según medio en STM /VER SI ESTE TITULO ES CORRECTO
 
 ```{r eval=FALSE, include=FALSE}
 
 #REVISAR cOMPLETO, no esta incluido en el word
 
-theta_stm_7 %>%
+grafico7 <- theta_stm_7 %>%
   group_by(medio, topic) %>%
   summarise(mean = mean(gamma)) %>%
   drop_na() %>%
@@ -669,15 +638,14 @@ theta_stm_7 %>%
            topic == 5 ~ "5.Justicia y seguridad",
            topic == 6 ~ "6.Cultura y entretenimiento",
            topic == 7 ~ "7.Deportes",
-           TRUE ~ as.character(topic)), scales = "free_y", strip.position = "bottom") + 
-    theme_minimal() +
+           TRUE ~ as.character(topic)), scales = "free_y", strip.position = "bottom")+     theme_minimal() +
     theme(legend.position = "none",  # Quitar la leyenda de medio
           axis.text.x = element_text(angle = 45, hjust = 1)) +  # Ajustar las etiquetas del eje x
     labs(title = "Tópicos por medio según modelo STM", 
-       caption = "Gráfico 8",  
-         plot.title = element_text(size = 14)) +
-    geom_text(aes(label = medio), vjust = -0.5, size = 3, position = position_dodge(width = 1))
+       caption = "Gráfico 7",  
+         plot.title = element_text(size = 14))
 
+print (grafico7)
 
 ```
 
