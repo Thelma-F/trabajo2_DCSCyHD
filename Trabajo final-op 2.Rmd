@@ -8,11 +8,11 @@ output:
 ---
 Trabajo Final Diploma Universitario  en Ciencias Sociales Computacionales y Humanidades Digitales
 
-##Introducción
+# Introducción
 
-##Preparación de los datos
+## Preparación de los datos
 
-#Se cargan las librerías a emplear
+## Se cargan las librerías a emplear
 
 ```{r librerias, warning=TRUE}
 
@@ -1491,10 +1491,7 @@ wf <- workflow() %>%
 
 ### Tuneo
 
-Los hiperparámetros a definir son:
-      -`penalty`: _____________
-      -`mixture`: _____________
-      
+
 ```{r hiperparametros3}
 
 # Establezco el modelo a tunear
@@ -2098,9 +2095,6 @@ wf <- workflow() %>%
 
 ### Tuneo
 
-Los hiperparámetros a definir son:
-      -`penalty`: _____________
-      -`mixture`: _____________
       
 ```{r hiperparametros5}
 
