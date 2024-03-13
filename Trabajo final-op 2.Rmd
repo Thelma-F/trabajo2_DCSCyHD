@@ -217,18 +217,20 @@ top_words_tf_idf  |>
 #### Gráfico 1: palabras más frecuentes (tf)
 
 ```{r grafico_palabras_frecuentes}
+top_words_tf$medio <- factor(top_words_tf$medio, levels = c("clarin", "cronica", "infobae", "lanacion", "pagina12", "perfil", "telam", "minutouno"), labels = c("Clarín", "Crónica", "Infobae", "La Nación", "Página 12", "Perfil", "Télam", "Minuto Uno"))
 
 ggplot(top_words_tf, aes(x = tf, 
                          y = word, 
                          fill = medio)) +
-  geom_col() +
+  geom_col(width = 0.7) +
   scale_fill_discrete(name = "Medio") +
   labs(x = "Frecuencia (TF) cada 1000 palabras", 
        y = "Término") +
   facet_wrap(~medio, scales = "free_y") +
   theme_minimal() +
-  theme(legend.position = "none") +
-  labs(title = "Las 10 palabras más utilizadas en cada medio",
+  theme(legend.position = "none",
+        axis.text.y = element_text(size = 7)) +  # Ajustar el tamaño de las etiquetas del eje y
+  labs(title = "Las 10 palabras más utilizadas por medio",
        subtitle = "Julio - Septiembre 2019", 
        caption = "Gráfico 1")
 
