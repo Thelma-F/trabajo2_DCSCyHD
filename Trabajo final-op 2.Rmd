@@ -657,11 +657,10 @@ labelTopics(stm_7)
 
 ```
 
-
-### Tópicos resultantes STM REVISAR
+### Tópicos resultantes 
     - Tópico 1: Política nacional y elecciones
     - Tópico 2: Política internacional
-    - Tópico 3: Economía
+    - Tópico 3: Economía y finanzas
     - Tópico 4: Astrología, salud y ciencia 
     - Tópico 5: Justicia y seguridad
     - Tópico 6: Cultura y entretenimiento
