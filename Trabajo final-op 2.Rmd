@@ -604,7 +604,7 @@ grafico6 <- betas_stm %>%
        caption = "Gráfico 6",
        plot.title = element_text(size = 10))
 
-  print (grafico6)
+  print(grafico6)
 
 # Guardar el gráfico como un archivo
 ggsave(filename = "Graficos/Grafico6.png", plot = grafico6, width = 8, height = 6)
@@ -648,6 +648,10 @@ grafico7 <- theta_stm_7 %>%
          plot.title = element_text(size = 14))
 
 print (grafico7)
+
+
+# Guardar el gráfico como un archivo
+ggsave(filename = "Graficos/Grafico7.png", plot = grafico7, width = 8, height = 6)
 
 ```
 
@@ -2610,11 +2614,40 @@ metricas_modelos <- metricas_1 |>
   bind_rows(metricas_6)
   
 
-metricas_modelos |> 
-  ggplot(aes(x = .metric, y = .estimate, fill = modelo))+
-  geom_col(position = "dodge")+
-  scale_fill_viridis_d()+
+grafico7 <- metricas_modelos |> 
+  mutate(.metric = case_when(
+    .metric == "accuracy" ~ "Accuracy",
+    .metric == "roc_auc" ~ "Curva ROC",
+    .metric == "precision" ~ "Precision",
+    .metric == "recall" ~ "Recall",
+    .metric == "f_meas" ~ "F_meas",
+    TRUE ~ as.character(.metric))) |> 
+  mutate(modelo = case_when(
+    modelo == "modelo_1" ~ "Prueba 1",
+    modelo == "modelo_2" ~ "Prueba 2",
+    modelo == "modelo_3" ~ "Prueba 3",
+    modelo == "modelo_4" ~ "Prueba 4",
+    modelo == "modelo_5" ~ "Prueba 5",
+    modelo == "modelo_6" ~ "Prueba 6",
+    TRUE ~ as.character(modelo))) |> 
+  ggplot(aes(x = .metric, y = .estimate, fill = modelo)) +
+  geom_col(position = "dodge") +
+  scale_fill_viridis_d() +
+  labs(title = "Principales métricas según modelo", 
+       caption = "Gráfico 7",
+       plot.title = element_text(size = 10),
+       x = "Métricas", 
+       y = "Estimado") +
+  guides(fill = guide_legend(title = "Prueba")) +
   theme_minimal()
+
+
+print(grafico7)
+
+# Guardar el gráfico como un archivo
+ggsave(filename = "Graficos/Grafico7.png", 
+       plot = grafico7, 
+       width = 8, height = 6)
 
 ```
 
