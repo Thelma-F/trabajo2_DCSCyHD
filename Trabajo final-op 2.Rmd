@@ -618,11 +618,9 @@ theta_stm_7 <- tetha_stm %>%
  
 ```
 
-### Gráfico 7: Principales palabras por tópico según medio en STM /VER SI ESTE TITULO ES CORRECTO
+### Gráfico 7: Principales palabras por tópico según medio en STM 
 
 ```{r eval=FALSE, include=FALSE}
-
-#REVISAR cOMPLETO, no esta incluido en el word
 
 grafico7 <- theta_stm_7 %>%
   group_by(medio, topic) %>%
