@@ -45,11 +45,11 @@ noticias |>
 
 ```{r limpieza_noticias}
 
-#Arma el listado de noticias que no contienen texto
+#Armado del listado de noticias que no contienen texto
 noticias_vacias <- noticias |> 
   filter(is.na(texto))
 
-# Usa anti_join para eliminar esas noticias de la base "noticias"
+# Uso de anti_join para eliminar esas noticias de la base "noticias"
 noticias <- noticias |> 
   anti_join(noticias_vacias, by = c("titulo" = "titulo"))
 
@@ -69,7 +69,7 @@ noticias <- noticias |>
   # Elimina múltiples espaciados erróneamente ingresados
   mutate(texto = str_squish(texto))
 
-# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son demasiado cortas y producen ruido a la hora de evaluar las term frequency (tf)
+# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son demasiado cortas y producen ruido a la hora de evaluar las term frequency (TF)
 
 noticias_cortas <- noticias |> 
   # "\\S+" es la expresión regular para detectar palabras con un espacio
@@ -79,7 +79,7 @@ noticias_cortas <- noticias |>
 noticias <- noticias |> 
   anti_join(noticias_cortas, by = c("titulo" = "titulo"))
 
-# Arma el listado de noticias de La Nación que tuvieron errores en el webscrapeo, ya que inician con "envía tu comentario ver legales los comentarios publicados son"
+# Arma el listado de noticias de La Nación que tuvieron errores en el webscraping, ya que inician con "envía tu comentario ver legales los comentarios publicados son"
 
 noticias_error_ln <- noticias |> 
   filter(str_detect(texto, "^envía tu comentario ver legales los comentarios publicados son"))
@@ -127,7 +127,7 @@ corpus_noticias <- noticias_tidy %>%
   anti_join(stop_words, 
             by = c("word" = "word"))
 
-# Elimina ambos archivos porque ya no lo necesitamos
+# Elimina ambos archivos porque ya no son necesarios
 rm(stop_words, noticias_tidy)
 
 corpus_noticias |> 
@@ -214,7 +214,7 @@ top_words_tf_idf  |>
   print()
 ```
 ### C) Gráficos
-#### Gráfico 1: palabras más frecuentes (tf)
+#### Gráfico 1: palabras más frecuentes (TF)
 
 ```{r grafico_palabras_frecuentes}
 top_words_tf$medio <- factor(top_words_tf$medio, levels = c("clarin", "cronica", "infobae", "lanacion", "pagina12", "perfil", "telam", "minutouno"), labels = c("Clarín", "Crónica", "Infobae", "La Nación", "Página 12", "Perfil", "Télam", "Minuto Uno"))
@@ -402,7 +402,6 @@ top_palabras_topicos <- palabras_topicos %>%
     TRUE ~ as.character(topic)
   ))
 
-# Creamos el gráfico sin las líneas del área
 grafico4 <- top_palabras_topicos %>%
   mutate(term = reorder_within(term, beta, topic)) %>%
   ggplot(aes(x = beta * 1000, 
@@ -443,9 +442,9 @@ Para observar qué títulos aparecen en las noticias del tópico 4
 # Este código no se corre, es sólo para revisar qué noticias pertenecen más probablemente a un tópico (ej: tópico 4)
 
 
-# Para observar qué títulos aparecen en las noticias del tópico 1
+# Para observar qué títulos aparecen en las noticias del tópico 4
 topicos_noticias |>
-  filter(topic == 1) %>%
+  filter(topic == 4) %>%
   filter(gamma > 0.9) |> 
   mutate(gamma = round(gamma, 5)) |> 
   View()
@@ -453,7 +452,7 @@ topicos_noticias |>
 ```
 
 
-Para observar cuáles noticias no parecen encajar bien en ninguno de los tópicos posibles
+Para observar cuáles noticias no parecen ajustarse bien en ninguno de los tópicos posibles.
 
 
 ```{r noticias_poco_clasificables, eval=FALSE, include=FALSE}
@@ -463,10 +462,9 @@ Para observar cuáles noticias no parecen encajar bien en ninguno de los tópico
 topicos_noticias |> 
   # Ponemos un umbral de bajas chances de encajar en cualquier tópico
   filter(gamma < 0.3) |> 
-  # Contamos cuántos son los documentos que cumplen la condición anterior (porque si encajan 
-  # perfecto en un tópico, es obvio que en los otros no encajan)
+  # Contamos cuántos son los documentos que cumplen la condición anterior (porque si encajan perfecto en un tópico, es obvio que en los otros no encajan)
   count(document) |> 
-  # Si aparece 7 veces el titulo, es que en los 7 tópicos tiene menos de un 30% de chances
+  # Si aparece 7 veces el título, es que en los 7 tópicos tiene menos de un 30% de chances
   filter(n == 7) |> 
   View()
 
@@ -522,7 +520,7 @@ Tópico 6: Política nacional y elecciones
 Tópico 7: Deportes 
 
 ## Alternativa con  Structural Topic Modeling (STM)
-Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos muy parecidos a los que se logra con LDA
+Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos similares a los que se logra con LDA.
 
 Construimos una DFM
 ```{r eval=FALSE, include=FALSE}
@@ -650,7 +648,6 @@ grafico7 <- theta_stm_7 %>%
 print (grafico7)
 
 
-# Guardar el gráfico como un archivo
 ggsave(filename = "Graficos/Grafico7.png", plot = grafico7, width = 8, height = 6)
 
 ```
@@ -679,7 +676,7 @@ Generar las visualizaciones y tablas correspondientes para una correcta evaluaci
 
 ## Armado del corpus
 
-Selección de noticias del tópico política/elecciones del modelo LDA
+Selección de noticias del tópico 6 política/elecciones del modelo LDA
 
 ```{r noticias_topico_6}
 
@@ -785,7 +782,7 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
 
 corpus_noticias_t6 <- corpus_noticias_t6 |>
-        # Revisar qué es esa expresión regular
+        
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
         # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -815,7 +812,7 @@ corpus_c_embedding <- corpus_noticias_t6 |>
 
 ```
 
-Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico, con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
+Agrupamos por cada noticia y calculamos el promedio para cada dimensión de cada palabra que forma parte de una noticia. Se agrupa por cada noticia (que tiene un diario específico con una orientación específica) y calcula el promedio para cada dimensión de cada palabra que forma parte de una noticia. De esta forma, tenemos el valor promedio en cada dimensión de la noticia en su conjunto.
 
 ```{r promedio_x_dimension1}
 
@@ -1082,7 +1079,6 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
 corpus_noticias_t6 <- corpus_noticias_t6 |>
-        # Revisar qué es esa expresión regular
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
         # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -1381,8 +1377,7 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
 
-corpus_noticias_t6 <- corpus_noticias_t6 %>%
-        # Revisar qué es esa expresión regular
+corpus_noticias_t6 <- corpus_noticias_t6 %>% 
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) %>%
         # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -1687,7 +1682,6 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
 corpus_noticias_t6 <- corpus_noticias_t6 |>
-        # Revisar qué es esa expresión regular
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
         # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -1986,7 +1980,6 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
 corpus_noticias_t6 <- corpus_noticias_t6 |>
-        # Revisar qué es esa expresión regular
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
         # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -2290,7 +2283,6 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación
 ## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ascii para que se unan correctamente con el embedding
 
 corpus_noticias_t6 <- corpus_noticias_t6 |>
-        # Revisar qué es esa expresión regular
         mutate(texto = str_replace_all(texto, "'\\[.*?¿\\]\\%'", " ")) |> 
         # Reemplaza cualquier dígito por la cadena "DIGITO"
         mutate(texto = str_replace_all(texto, "[[:digit:]]+", "DIGITO"))
@@ -2601,7 +2593,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# GRÁFICO 7 COMPARANDO MÉTRICAS DE LOS MODELOS PROBADOS
+# GRÁFICO 8 COMPARANDO MÉTRICAS DE LOS MODELOS PROBADOS
 
 
 ```{r grafico_metricas_modelos}
@@ -2614,7 +2606,7 @@ metricas_modelos <- metricas_1 |>
   bind_rows(metricas_6)
   
 
-grafico7 <- metricas_modelos |> 
+grafico8 <- metricas_modelos |> 
   mutate(.metric = case_when(
     .metric == "accuracy" ~ "Accuracy",
     .metric == "roc_auc" ~ "Curva ROC",
@@ -2634,7 +2626,7 @@ grafico7 <- metricas_modelos |>
   geom_col(position = "dodge") +
   scale_fill_viridis_d() +
   labs(title = "Principales métricas según modelo", 
-       caption = "Gráfico 7",
+       caption = "Gráfico 8",
        plot.title = element_text(size = 10),
        x = "Métricas", 
        y = "Estimado") +
@@ -2642,11 +2634,11 @@ grafico7 <- metricas_modelos |>
   theme_minimal()
 
 
-print(grafico7)
+print(grafico8)
 
 # Guardar el gráfico como un archivo
-ggsave(filename = "Graficos/Grafico7.png", 
-       plot = grafico7, 
+ggsave(filename = "Graficos/Grafico8.png", 
+       plot = grafico8, 
        width = 8, height = 6)
 
 ```
