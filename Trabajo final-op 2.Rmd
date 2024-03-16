@@ -69,7 +69,7 @@ noticias <- noticias |>
   # Elimina múltiples espaciados erróneamente ingresados
   mutate(texto = str_squish(texto))
 
-# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son demasiado cortas y producen ruido a la hora de evaluar las term frequency (TF)
+# Arma el listado de noticias que, después de limpieza de caracteres, se considera que son demasiado cortas y producen "ruido" a la hora de evaluar las term frequency (TF)
 
 noticias_cortas <- noticias |> 
   # "\\S+" es la expresión regular para detectar palabras con un espacio
@@ -166,7 +166,7 @@ corpus_tf_idf_medio |>
     - c) Generar las visualizaciones que considere más pertinentes para responder la pregunta
 
 ## Puntos a y b
-### Armamos un corpus con las tf, idf y las tf_idf por medio
+### Armamos un corpus con las TF, IDF y las TF_IDF por medio
 #### Buscamos las TF (las palabras más importantes/frecuentes)
 
 ```{r todos_los_medios}
@@ -214,7 +214,7 @@ top_words_tf_idf  |>
   print()
 ```
 ### C) Gráficos
-#### Gráfico 1: palabras más frecuentes (TF)
+#### Gráfico 1: Palabras más frecuentes (TF)
 
 ```{r grafico_palabras_frecuentes}
 top_words_tf$medio <- factor(top_words_tf$medio, levels = c("clarin", "cronica", "infobae", "lanacion", "pagina12", "perfil", "telam", "minutouno"), labels = c("Clarín", "Crónica", "Infobae", "La Nación", "Página 12", "Perfil", "Télam", "Minuto Uno"))
@@ -236,7 +236,7 @@ ggplot(top_words_tf, aes(x = tf,
 
 ```
 
-#### Tabla 1: Palabras palabras de mayor frecuencia ajustadas por la importancia que tiene en el corpus (tf_idf)
+#### Tabla 1: Palabras de mayor frecuencia ajustadas por la importancia que tienen en el corpus (tf_idf)
 
 ```{r tabla_palabras_informativas}
 top_words_idf %>%
@@ -263,7 +263,7 @@ ggplot(top_words_tf_idf, aes(x = tf_idf *1000,
 
 ```
 
-#### Gráfico 3: las 3 palabras más utilizadas en los medios
+#### Gráfico 3: Las 3 palabras más utilizadas en los medios
 
 ```{r}
 
@@ -368,7 +368,7 @@ modelo_armado <- read_rds('models/LDA7.rds')
 ```
 
 ```{r prob_x_palabra}
-                  # Si esta línea les tira algún error, hagan install.packages("reshape2")
+                  # Si esta línea tira algún error, hagan install.packages("reshape2")
 palabras_topicos <- tidy(modelo_armado, matrix = "beta") 
 
 #Lo pasamos a porcentajes
@@ -489,7 +489,8 @@ nombres_topicos <- c("1.Policiales" = "Policiales",
                      "6.Política nacional y elecciones" = "Política nacional y elecciones",
                      "7.Deportes" = "Deportes")
 
-# Crear el gráfico facetado por tópico sin líneas delimitadoras del área del gráfico
+# Crear el gráfico facetado por tópico
+
 grafico5 <- ggplot(topicos_por_medio, aes(x = factor(medio), y = mean)) +
   geom_col(aes(fill = medio), position = "dodge") +
   facet_wrap(~ factor(topic, labels = nombres_topicos), scales = "free") +
@@ -537,7 +538,7 @@ noticias_dfm
 
 ```
 
-Entrenamos el DFM y establecemos la misma cantidad de tópicos que el LDA: 7 tópicos
+Entrenamos el DFM y establecemos la misma cantidad de tópicos que con LDA: 7 tópicos
 
 ```{r eval=FALSE, include=FALSE}
 #stm_7 <- read_rds('models/stm_7_prev_cont.rds'')
@@ -739,10 +740,10 @@ embedding <- load_embeddings(path = "embedding/SBW-vectors-300-min5.bin/sbw_vect
                              type = "w2v")
 
 ```
-Vamos a realizar distintas pruebas con dos modelos de clasificación, realizando combinaciones de variables e hiperparamétros.
+Vamos a realizar distintas pruebas con dos modelos de clasificación (Random Forest y Regresión logística regularizada por LASSO), realizando combinaciones de variables e hiperparámétros.
 
 # PRUEBA 1	RANDOM FOREST
-    - Se excluye de la variable orientación, las observaciones que corresponden a  "neutro"
+    - Se excluye de la variable orientación, las observaciones que corresponden a la categoría "neutro"
     - Sin variable “medio”
     - Sin balancear en la receta por orientación
 
@@ -767,7 +768,7 @@ corpus_noticias_t6 <- noticias_topico_6 |>
   filter(orientacion != "neutro") |> 
   mutate(orientacion = factor(orientacion,
                               levels = c("conservador", "progresista"))) 
-                              #levels = c("conservador", "neutro", "progresista")))
+                              
 
 table(corpus_noticias_t6$orientacion)
 
@@ -777,7 +778,7 @@ Tokenización pero sin pasar todo a minúscula y sin eliminar la puntuación.
 
 ```{r preprocesamiento1}
 
-## No vamos a pasar a minúscula nada y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
+## No vamos a pasar a minúscula  y tampoco vamos a eliminar caracteres no ASCII para que se unan correctamente con el embedding
 
 corpus_noticias_t6 <- corpus_noticias_t6 |>
         
@@ -844,14 +845,14 @@ table(train_embed$orientacion)
 
 ```{r receta1}
 
-# Especifico la receta
+# Especificación de la receta
 receta <- train_embed |> 
   recipe(orientacion ~ .) |> 
   update_role("title_id", new_role = "id")
   # No balanceamos
   #step_downsample(orientacion, under_ratio = 1)
 
-# La agrego al workflow
+# Se agrega al workflow
 wf <- workflow() %>%
   add_recipe(receta)
 
@@ -866,14 +867,14 @@ Los hiperparámetros a definir son:
 
 ```{r hiperparametros1}
 
-# Establezco el modelo a tunear
+# Se establece el modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
                                mtry = tune(),
                                min_n = tune()) %>%
   set_mode("classification") %>%
   set_engine("ranger")
 
-# Lo agrego al workflow
+# Se agrega al workflow
 wf <- wf |> 
   add_model(modelo_a_tunear)
 
@@ -891,7 +892,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 ```{r combinaciones_hiperparametros1, eval=FALSE, include=FALSE}
 tictoc::tic()
 
-# Entreno el modelo con distintas combinaciones de hiperparámetros
+# Entrenamiento del modelo con distintas combinaciones de hiperparámetros
 a_tunear_1 <- tune_grid(object = wf,
                         resamples = embed_folds,
                         grid = 30,
@@ -932,7 +933,7 @@ a_tunear_1 |>
 
 ```{r}
 
-# Mostramos los hiperparámetros que dan la mejor curva ROC
+# Se muestran los hiperparámetros que dan la mejor curva ROC
 show_best(a_tunear_1, "roc_auc")
 
 ```
@@ -975,7 +976,7 @@ fit_final <- wf |>
 
 ```{r fit_en_test1}
 
-# Creamos un nuevo flujo de trabajo, agregamos la receta y el modelo, y ajustamos a los datos de entrenamiento
+# Creamos un nuevo flujo de trabajo, agregamos la receta y el modelo y ajustamos a los datos de entrenamiento
 tree_fit <- workflow() %>%
   add_recipe(receta) %>%
   add_model(final_rf) %>%
@@ -1034,7 +1035,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 # PRUEBA 2 RANDOM FOREST
-    - Excluye orientación "neutro" 
+    - Excluye de la variable orientación la categoría "neutro" 
     - Con variable medio
     - Balanceando en la receta por medio	
 
@@ -1064,8 +1065,8 @@ corpus_noticias_t6 <- noticias_topico_6 |>
   filter(orientacion != "neutro")|> 
   mutate(orientacion = factor(orientacion,
                               levels = c("conservador", "progresista")))
-                              #levels = c("conservador", "neutro", "progresista")))
- 
+                             
+
 table(corpus_noticias_t6$medio)
 
 ```
@@ -1141,7 +1142,7 @@ table(train_embed$medio)
 
 ```{r receta2}
 
-# Especifico la receta
+# Especificación de la receta
 receta <- train_embed |> 
   recipe(orientacion ~ .) %>%
   step_rm(medio) |> 
@@ -1150,7 +1151,7 @@ receta <- train_embed |>
                   under_ratio = 1)
   
 
-# La agrego al workflow
+# Se agrega al workflow
 wf <- workflow() %>%
   add_recipe(receta)
 
@@ -1166,7 +1167,7 @@ Los hiperparámetros a definir son:
 
 ```{r hiperparametros2}
 
-# Establezco el modelo a tunear
+# Establecimiento del modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
                                mtry = tune(),
                                min_n = tune()) %>%
@@ -1174,7 +1175,7 @@ modelo_a_tunear <- rand_forest(trees = 1000,
   set_engine("ranger")
 
 
-# Lo agrego al workflow
+# Se agrega al workflow
 wf <- wf |> 
   add_model(modelo_a_tunear)
 
@@ -1440,7 +1441,7 @@ table(train_embed$orientacion)
 
 ```{r receta3}
 
-# Especifico la receta
+# Se específica la receta
 receta_lasso <- train_embed |> 
   recipe(orientacion ~ .) %>%
   update_role("title_id", new_role = "ID")
@@ -1448,7 +1449,7 @@ receta_lasso <- train_embed |>
   #                under_ratio = 1)
   
 
-# La agrego al workflow
+# Se agrega al workflow
 wf <- workflow() %>%
   add_recipe(receta_lasso)
 
@@ -1460,14 +1461,14 @@ wf <- workflow() %>%
 
 ```{r hiperparametros3}
 
-# Establezco el modelo a tunear
+# Establecimiento  del modelo a tunear
 modelo_a_tunear <- logistic_reg(penalty = tune(),
                                 mixture = 1) %>%
   set_mode("classification") %>%
   set_engine("glmnet")
 
 
-# Lo agrego al workflow
+# Se agrega al workflow
 wf <- wf |> 
   add_model(modelo_a_tunear)
 
@@ -1484,7 +1485,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```{r}
 
-# especifico la grilla
+# Se especifica la grilla
 grid_lasso <- grid_regular(penalty(),
                            levels = 30)
 
@@ -1494,7 +1495,7 @@ grid_lasso <- grid_regular(penalty(),
 
 tictoc::tic()
 
-# Entreno el modelo con distintas combinaciones de hiperparámetros
+# Entrenamiento del modelo con distintas combinaciones de hiperparámetros
 a_tunear_3 <- tune_grid(wf,
                         resamples = embed_folds,
                         grid = grid_lasso,
@@ -1743,7 +1744,7 @@ table(train_embed$medio)
 
 ```{r receta4}
 
-# Especifico la receta
+# Se específica la receta
 receta <- train_embed |> 
   recipe(orientacion ~ .) %>%
   step_rm(medio) |> 
@@ -1752,7 +1753,7 @@ receta <- train_embed |>
                   under_ratio = 1)
   
 
-# La agrego al workflow
+# Se agrega al workflow
 wf <- workflow() %>%
   add_recipe(receta)
 
@@ -1776,7 +1777,7 @@ modelo_a_tunear <- rand_forest(trees = 1000,
   set_engine("ranger")
 
 
-# Lo agrego al workflow
+# Se agrega al workflow
 wf <- wf |> 
   add_model(modelo_a_tunear)
 
@@ -2042,7 +2043,7 @@ table(train_embed$medio)
 
 ```{r receta5}
 
-# Especifico la receta
+# Se especifica la receta
 receta_lasso <- train_embed |> 
   recipe(orientacion ~ .) %>%
   update_role("title_id", new_role = "ID") |> 
@@ -2051,7 +2052,7 @@ receta_lasso <- train_embed |>
                  under_ratio = 1)
   
 
-# La agrego al workflow
+# Se agrega al workflow
 wf <- workflow() %>%
   add_recipe(receta_lasso)
 
@@ -2062,14 +2063,14 @@ wf <- workflow() %>%
       
 ```{r hiperparametros5}
 
-# Establezco el modelo a tunear
+# Establecimiento del modelo a tunear
 modelo_a_tunear <- logistic_reg(penalty = tune(),
                                 mixture = 1) %>%
   set_mode("classification") %>%
   set_engine("glmnet")
 
 
-# Lo agrego al workflow
+# Se agrega al workflow
 wf <- wf |> 
   add_model(modelo_a_tunear)
 
@@ -2086,7 +2087,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 ```{r}
 
-# especifico la grilla
+# Se especifica la grilla
 grid_lasso <- grid_regular(penalty(),
                            levels = 30)
 
@@ -2096,7 +2097,7 @@ grid_lasso <- grid_regular(penalty(),
 
 tictoc::tic()
 
-# Entreno el modelo con distintas combinaciones de hiperparámetros
+# Entrenamiento  del modelo con distintas combinaciones de hiperparámetros
 a_tunear_5 <- tune_grid(wf,
                         resamples = embed_folds,
                         grid = grid_lasso,
@@ -2339,7 +2340,7 @@ noticias_c_embedding |>
 
 ```
 
-Es claro que no existe un balanceo de orientaciones: "conservador" y "neutro" poseen casi un 40% de noticias, mientras "progresista" sólo posee un 21%. Lo mismo puede decirse sobre los diarios dentro de cada orientación: dentro de "conservador", Clarín tiene el cuadruple de casos que Infobae; lo mismo Perfil respecto a Crónica o Télam en "neutro"; y Página12 posee más que el doble de noticias que Minuto1
+Es claro que no existe un balanceo de orientaciones: "conservador" y "neutro" poseen casi un 40% de noticias, mientras "progresista" sólo posee un 21%. Lo mismo puede decirse sobre la orientación de los diarios.  Con respecto a la categoría "conservador", Clarín tiene el cuádruple de casos que Infobae; lo mismo Perfil respecto a Crónica o Télam en "neutro"; y Página12 posee más del doble de noticias que Minuto1
 
 Por ese motivo, es necesario un balanceo de medios y orientaciones antes de continuar con el análisis. Considerando que sólo existen 2 diarios de orientación "progresista" (mientras el resto de las orientaciones poseen 3 diarios distintos) y uno de ellos (Minuto1) sólo posee 60 noticias, utilizaremos ese valor como base. 
 
@@ -2399,7 +2400,7 @@ table(train_embed$medio)
 
 ```{r receta6}
 
-# Especifico la receta
+# Se especifica la receta
 receta <- train_embed |> 
   recipe(orientacion ~ .) %>%
   step_rm(medio) |> 
@@ -2408,7 +2409,7 @@ receta <- train_embed |>
   #                under_ratio = 1)
   
 
-# La agrego al workflow
+# Se agrega al workflow
 wf <- workflow() %>%
   add_recipe(receta)
 
@@ -2424,7 +2425,7 @@ Los hiperparámetros a definir son:
 
 ```{r hiperparametros6}
 
-# Establezco el modelo a tunear
+# Establecimiento del modelo a tunear
 modelo_a_tunear <- rand_forest(trees = 1000,
                                mtry = tune(),
                                min_n = tune()) %>%
@@ -2432,7 +2433,7 @@ modelo_a_tunear <- rand_forest(trees = 1000,
   set_engine("ranger")
 
 
-# Lo agrego al workflow
+# Se agrego al workflow
 wf <- wf |> 
   add_model(modelo_a_tunear)
 
@@ -2451,7 +2452,7 @@ embed_folds <- vfold_cv(train_embed, v = 5)
 
 tictoc::tic()
 
-# Entreno el modelo con distintas combinaciones de hiperparámetros
+# Entrenamiento del modelo con distintas combinaciones de hiperparámetros
 a_tunear_6 <- tune_grid(wf,
                         resamples = embed_folds,
                         grid = 30,
@@ -2591,7 +2592,7 @@ rm("objetos_a_eliminar", "objetos_a_no_eliminar", "todos_los_objetos")
 
 
 
-# GRÁFICO 8 COMPARANDO MÉTRICAS DE LOS MODELOS PROBADOS
+# GRÁFICO 8: COMPARANDO MÉTRICAS DE LOS MODELOS PROBADOS (RANDOM FOREST Y REGRESIÓN LOGÍSTICA REGULARIZADA POR LASSO)
 
 
 ```{r grafico_metricas_modelos}
