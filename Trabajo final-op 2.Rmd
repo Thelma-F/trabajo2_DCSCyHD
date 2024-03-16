@@ -219,6 +219,7 @@ top_words_tf_idf  |>
 ```{r grafico_palabras_frecuentes}
 top_words_tf$medio <- factor(top_words_tf$medio, levels = c("clarin", "cronica", "infobae", "lanacion", "pagina12", "perfil", "telam", "minutouno"), labels = c("Clarín", "Crónica", "Infobae", "La Nación", "Página 12", "Perfil", "Télam", "Minuto Uno"))
 
+
 ggplot(top_words_tf, aes(x = tf, 
                          y = word, 
                          fill = medio)) +
@@ -524,7 +525,7 @@ Tópico 7: Deportes
 Todos estos chunks están configurados para que no corran cuando se corre todo el código. Sin embargo, dan como resultado tópicos similares a los que se logra con LDA.
 
 Construimos una DFM
-```{r eval=FALSE, include=FALSE}
+```{r}
 
 word_counts <- corpus_noticias %>%  
         group_by(id,word) %>%
@@ -540,13 +541,17 @@ noticias_dfm
 
 Entrenamos el DFM y establecemos la misma cantidad de tópicos que con LDA: 7 tópicos
 
-```{r eval=FALSE, include=FALSE}
-#stm_7 <- read_rds('models/stm_7_prev_cont.rds'')
+```{r}
 
 metadata <- corpus_noticias %>%  
         group_by(id,medio ) %>%
         summarise(n = n()) %>%
         ungroup()
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
 
 stm_7 <- stm(documents = noticias_dfm,
              K = 7,
@@ -560,6 +565,7 @@ write_rds(stm_7, 'models/stm_7_prev_cont.rds')
 ```
 
 ```{r}
+
 stm_7 <- read_rds('models/stm_7_prev_cont.rds')
 
 ```
@@ -569,8 +575,8 @@ Generamos la matriz beta y theta
 
 ```{r}
 
-betas_stm <- tidy(stm_7, matrix='beta')
-tetha_stm <- tidy(stm_7, matrix='theta')
+betas_stm <- tidy(stm_7, matrix = 'beta')
+tetha_stm <- tidy(stm_7, matrix = 'theta')
 
 ```
 
@@ -606,22 +612,24 @@ grafico6 <- betas_stm %>%
   print(grafico6)
 
 # Guardar el gráfico como un archivo
-ggsave(filename = "Graficos/Grafico6.png", plot = grafico6, width = 8, height = 6)
+ggsave(filename = "Graficos/Grafico6.png", 
+       plot = grafico6, 
+       width = 8, height = 6)
 
 ```
 
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 
 theta_stm_7 <- tetha_stm %>%
-  rename(id=document) %>%
+  rename(id = document) %>%
   left_join(metadata)
  
 ```
 
 ### Gráfico 7: Principales palabras por tópico según medio en STM 
 
-```{r eval=FALSE, include=FALSE}
+```{r}
 
 grafico7 <- theta_stm_7 %>%
   group_by(medio, topic) %>%
@@ -644,10 +652,12 @@ grafico7 <- theta_stm_7 %>%
        caption = "Gráfico 7",  
          plot.title = element_text(size = 14))
 
-print (grafico7)
+print(grafico7)
 
 
-ggsave(filename = "Graficos/Grafico7.png", plot = grafico7, width = 8, height = 6)
+ggsave(filename = "Graficos/Grafico7.png", 
+       plot = grafico7, 
+       width = 8, height = 6)
 
 ```
 
